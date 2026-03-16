@@ -11,6 +11,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
+
 @TableName("ds_membership_account")
 @KeySequence("ds_membership_account_seq")
 @Data
@@ -26,4 +28,6 @@ public class DsMembershipAccount extends TenantBaseDO {
     private Long uid;
     private String currentPlanCode;
     private String memberStatus;
+    private LocalDateTime effectiveTime;
+    private LocalDateTime expireTime;
 }

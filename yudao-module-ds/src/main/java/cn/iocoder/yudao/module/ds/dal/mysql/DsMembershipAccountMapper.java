@@ -6,4 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface DsMembershipAccountMapper extends BaseMapperX<DsMembershipAccount> {
+
+    default DsMembershipAccount selectByUid(Long uid) {
+        return selectOne(DsMembershipAccount::getUid, uid);
+    }
 }
