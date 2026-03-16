@@ -15,16 +15,16 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
     volumes:
       - mysql:/var/lib/mysql/
-      - ./sql/mysql/ruoyi-vue-pro.sql:/docker-entrypoint-initdb.d/ruoyi-vue-pro.sql:ro
+      - ./sql/ruoyi-vue-pro.sql:/docker-entrypoint-initdb.d/ruoyi-vue-pro.sql:ro
 
-  redis:
-    container_name: yudao-redis
-    image: redis:6-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis:/data
+#  redis:
+#    container_name: yudao-redis
+#    image: redis:6-alpine
+#    restart: unless-stopped
+#    ports:
+#      - "6379:6379"
+#    volumes:
+#      - redis:/data
 
   server:
     container_name: yudao-server
@@ -39,8 +39,8 @@ services:
       SPRING_PROFILES_ACTIVE: local
       JAVA_OPTS:
         ${JAVA_OPTS:-
-          -Xms512m
-          -Xmx512m
+          -Xms1g
+          -Xmx2g
           -Djava.security.egd=file:/dev/./urandom
         }
       ARGS:
@@ -55,30 +55,30 @@ services:
       - mysql
       - redis
 
-  admin:
-    container_name: yudao-admin
-    build:
-      context: ./yudao-ui-admin
-      args:
-        NODE_ENV:
-          ENV=${NODE_ENV:-production}
-          PUBLIC_PATH=${PUBLIC_PATH:-/}
-          VUE_APP_TITLE=${VUE_APP_TITLE:-芋道管理系统}
-          VUE_APP_BASE_API=${VUE_APP_BASE_API:-/prod-api}
-          VUE_APP_APP_NAME=${VUE_APP_APP_NAME:-/}
-          VUE_APP_TENANT_ENABLE=${VUE_APP_TENANT_ENABLE:-true}
-          VUE_APP_CAPTCHA_ENABLE=${VUE_APP_CAPTCHA_ENABLE:-true}
-          VUE_APP_DOC_ENABLE=${VUE_APP_DOC_ENABLE:-true}
-          VUE_APP_BAIDU_CODE=${VUE_APP_BAIDU_CODE:-fadc1bd5db1a1d6f581df60a1807f8ab}
-    image: yudao-admin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    depends_on:
-      - server
+#  admin:
+#    container_name: yudao-admin
+#    build:
+#      context: ./yudao-ui-admin
+#      args:
+#        NODE_ENV:
+#          ENV=${NODE_ENV:-production}
+#          PUBLIC_PATH=${PUBLIC_PATH:-/}
+#          VUE_APP_TITLE=${VUE_APP_TITLE:-芋道管理系统}
+#          VUE_APP_BASE_API=${VUE_APP_BASE_API:-/prod-api}
+#          VUE_APP_APP_NAME=${VUE_APP_APP_NAME:-/}
+#          VUE_APP_TENANT_ENABLE=${VUE_APP_TENANT_ENABLE:-true}
+#          VUE_APP_CAPTCHA_ENABLE=${VUE_APP_CAPTCHA_ENABLE:-true}
+#          VUE_APP_DOC_ENABLE=${VUE_APP_DOC_ENABLE:-true}
+#          VUE_APP_BAIDU_CODE=${VUE_APP_BAIDU_CODE:-fadc1bd5db1a1d6f581df60a1807f8ab}
+#    image: yudao-admin
+#    restart: unless-stopped
+#    ports:
+#      - "8080:80"
+#    depends_on:
+#      - server
 
-volumes:
-  mysql:
-    driver: local
-  redis:
-    driver: local
+#volumes:
+#  mysql:
+#    driver: local
+#  redis:
+#    driver: local
