@@ -26,4 +26,9 @@ public class AppDsAuthRegisterReqVO {
     @Schema(description = "注册渠道", requiredMode = Schema.RequiredMode.REQUIRED, example = "APP")
     @NotBlank(message = "注册渠道不能为空")
     private String registerChannel;
+
+    @Schema(description = "密码", requiredMode = Schema.RequiredMode.REQUIRED, example = "123456")
+    @NotBlank(message = "密码不能为空")
+    @Length(min = 6, max = 32, message = "密码长度为 6-32 位")
+    private String password;
 }

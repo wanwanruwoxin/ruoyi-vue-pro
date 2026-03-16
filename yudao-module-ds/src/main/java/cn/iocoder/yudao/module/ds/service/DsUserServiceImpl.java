@@ -10,13 +10,14 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import cn.iocoder.yudao.module.system.enums.oauth2.OAuth2ClientConstants;
 import jakarta.annotation.Resource;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.AUTH_LOGIN_BAD_CREDENTIALS;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.AUTH_LOGIN_USER_DISABLED;
-import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.AUTH_LOGIN_USER_NOT_FOUND;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.USER_MOBILE_EXISTS;
 
 @Service
@@ -27,15 +28,18 @@ public class DsUserServiceImpl implements DsUserService {
     private DsUserMapper dsUserMapper;
     @Resource
     private OAuth2TokenCommonApi oauth2TokenApi;
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
     @Override
-    public Long register(String mobile, String nickname, String avatar, String registerChannel) {
+    public Long register(String mobile, String nickname, String avatar, String registerChannel, String password) {
         if (dsUserMapper.selectByMobile(mobile) != null) {
             throw exception(USER_MOBILE_EXISTS);
         }
         DsUser dsUser = new DsUser();
         dsUser.setMobile(mobile);
         dsUser.setNickname(StringUtils.hasText(nickname) ? nickname : mobile);
+        dsUser.setPassword(passwordEncoder.encode(password));
         dsUser.setAvatar(avatar);
         dsUser.setRegisterChannel(registerChannel);
         dsUser.setStatus(CommonStatusEnum.ENABLE.getStatus());
@@ -44,10 +48,10 @@ public class DsUserServiceImpl implements DsUserService {
     }
 
     @Override
-    public AppDsAuthLoginRespVO login(String mobile) {
+    public AppDsAuthLoginRespVO login(String mobile, String password) {
         DsUser dsUser = dsUserMapper.selectByMobile(mobile);
-        if (dsUser == null) {
-            throw exception(AUTH_LOGIN_USER_NOT_FOUND);
+        if (dsUser == null || !passwordEncoder.matches(password, dsUser.getPassword())) {
+            throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
         }
         if (CommonStatusEnum.isDisable(dsUser.getStatus())) {
             throw exception(AUTH_LOGIN_USER_DISABLED);

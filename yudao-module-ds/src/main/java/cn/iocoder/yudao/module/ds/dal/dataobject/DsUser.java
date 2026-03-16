@@ -25,6 +25,7 @@ public class DsUser extends TenantBaseDO {
     private Long id;
     private String mobile;
     private String nickname;
+    private String password;
     private String avatar;
     private String registerChannel;
     private Integer status;

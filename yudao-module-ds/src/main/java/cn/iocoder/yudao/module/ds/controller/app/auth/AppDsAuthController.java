@@ -39,14 +39,15 @@ public class AppDsAuthController {
     @Operation(summary = "注册")
     @PermitAll
     public CommonResult<Long> register(@RequestBody @Valid AppDsAuthRegisterReqVO reqVO) {
-        return success(dsUserService.register(reqVO.getMobile(), reqVO.getNickname(), reqVO.getAvatar(), reqVO.getRegisterChannel()));
+        return success(dsUserService.register(reqVO.getMobile(), reqVO.getNickname(), reqVO.getAvatar(),
+                reqVO.getRegisterChannel(), reqVO.getPassword()));
     }
 
     @PostMapping("/login")
     @Operation(summary = "手机号登录")
     @PermitAll
     public CommonResult<AppDsAuthLoginRespVO> login(@RequestBody @Valid AppDsAuthLoginReqVO reqVO) {
-        return success(dsUserService.login(reqVO.getMobile()));
+        return success(dsUserService.login(reqVO.getMobile(), reqVO.getPassword()));
     }
 
     @PostMapping("/logout")
