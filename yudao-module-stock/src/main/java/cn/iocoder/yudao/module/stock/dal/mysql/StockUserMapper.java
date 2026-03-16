@@ -6,4 +6,12 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface StockUserMapper extends BaseMapperX<StockUser> {
+
+    default StockUser selectByPhone(String phone) {
+        return selectOne(StockUser::getPhone, phone);
+    }
+
+    default StockUser selectByEmail(String email) {
+        return selectOne(StockUser::getEmail, email);
+    }
 }
