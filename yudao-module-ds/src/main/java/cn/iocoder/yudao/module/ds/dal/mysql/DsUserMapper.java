@@ -6,4 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface DsUserMapper extends BaseMapperX<DsUser> {
+
+    default DsUser selectByMobile(String mobile) {
+        return selectOne(DsUser::getMobile, mobile);
+    }
 }
