@@ -1,14 +1,99 @@
 package cn.iocoder.yudao.module.ds.service;
 
+import cn.iocoder.yudao.module.ds.controller.app.invite.vo.AppDsInviteLinkRespVO;
+import cn.iocoder.yudao.module.ds.controller.app.invite.vo.AppDsInviteScanRespVO;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsInviteRelation;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsInviteRelationMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITE_BIND_SELF;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITE_BIND_LOOP;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITE_RELATION_EXISTS;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITER_NOT_EXISTS;
 
 @Service
 @Validated
 public class DsInviteRelationServiceImpl implements DsInviteRelationService {
 
+    private static final String INVITE_LINK_TEMPLATE = "/ds/invite/register?inviterId=%d";
+
     @Resource
     private DsInviteRelationMapper dsInviteRelationMapper;
+    @Resource
+    private DsUserMapper dsUserMapper;
+
+    @Override
+    public AppDsInviteLinkRespVO getInviteLink(Long inviterId) {
+        validateInviterExists(inviterId);
+        String inviteLink = buildInviteLink(inviterId);
+        return AppDsInviteLinkRespVO.builder()
+                .inviterId(inviterId)
+                .inviteLink(inviteLink)
+                .inviteQrCodeContent(inviteLink)
+                .build();
+    }
+
+    @Override
+    public AppDsInviteScanRespVO scanInvite(Long inviterId, String mobile) {
+        validateInviterExists(inviterId);
+        DsUser dsUser = mobile == null ? null : dsUserMapper.selectByMobile(mobile);
+        boolean accountExists = dsUser != null;
+        return AppDsInviteScanRespVO.builder()
+                .inviterId(inviterId)
+                .inviteLink(buildInviteLink(inviterId))
+                .accountExists(accountExists)
+                .message(accountExists ? "已存在账号" : "可继续注册")
+                .bindStrategy(accountExists ? "LOGIN_BIND_REQUIRED" : "REGISTER_AUTO_BIND")
+                .build();
+    }
+
+    @Override
+    public void bindInviteRelation(Long inviterId, Long inviteeId) {
+        validateInviterExists(inviterId);
+        if (inviterId.equals(inviteeId)) {
+            throw exception(INVITE_BIND_SELF);
+        }
+        if (hasInviterBound(inviteeId)) {
+            throw exception(INVITE_RELATION_EXISTS);
+        }
+        validateNoInviteLoop(inviterId, inviteeId);
+        DsInviteRelation relation = new DsInviteRelation();
+        relation.setInviterId(inviterId);
+        relation.setInviteeId(inviteeId);
+        relation.setLevel(1);
+        relation.setSourceQrCode(buildInviteLink(inviterId));
+        relation.setBindStatus(1);
+        dsInviteRelationMapper.insert(relation);
+    }
+
+    @Override
+    public boolean hasInviterBound(Long inviteeId) {
+        return dsInviteRelationMapper.selectByInviteeId(inviteeId) != null;
+    }
+
+    private void validateInviterExists(Long inviterId) {
+        if (dsUserMapper.selectById(inviterId) == null) {
+            throw exception(INVITER_NOT_EXISTS);
+        }
+    }
+
+    private String buildInviteLink(Long inviterId) {
+        return String.format(INVITE_LINK_TEMPLATE, inviterId);
+    }
+
+    private void validateNoInviteLoop(Long inviterId, Long inviteeId) {
+        Long currentInviterId = inviterId;
+        while (currentInviterId != null) {
+            if (currentInviterId.equals(inviteeId)) {
+                throw exception(INVITE_BIND_LOOP);
+            }
+            DsInviteRelation currentRelation = dsInviteRelationMapper.selectByInviteeId(currentInviterId);
+            currentInviterId = currentRelation == null ? null : currentRelation.getInviterId();
+        }
+    }
 }

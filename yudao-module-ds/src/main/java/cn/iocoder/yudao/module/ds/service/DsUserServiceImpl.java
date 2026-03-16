@@ -6,10 +6,19 @@ import cn.iocoder.yudao.framework.common.biz.system.oauth2.dto.OAuth2AccessToken
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsUserAddressMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
+import cn.iocoder.yudao.module.system.api.sms.SmsCodeApi;
+import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeSendReqDTO;
+import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeUseReqDTO;
+import cn.iocoder.yudao.module.system.enums.sms.SmsSceneEnum;
 import cn.iocoder.yudao.module.system.enums.oauth2.OAuth2ClientConstants;
+import cn.iocoder.yudao.framework.common.util.servlet.ServletUtils;
 import jakarta.annotation.Resource;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -30,20 +39,55 @@ public class DsUserServiceImpl implements DsUserService {
     private OAuth2TokenCommonApi oauth2TokenApi;
     @Resource
     private PasswordEncoder passwordEncoder;
+    @Resource
+    private DsUserAddressMapper dsUserAddressMapper;
+    @Resource
+    private DsInviteRelationService dsInviteRelationService;
+    @Resource
+    private SmsCodeApi smsCodeApi;
 
     @Override
-    public Long register(String mobile, String nickname, String avatar, String registerChannel, String password) {
-        if (dsUserMapper.selectByMobile(mobile) != null) {
+    public void sendRegisterSmsCode(String mobile) {
+        SmsCodeSendReqDTO reqDTO = new SmsCodeSendReqDTO();
+        reqDTO.setMobile(mobile);
+        reqDTO.setScene(SmsSceneEnum.MEMBER_LOGIN.getScene());
+        reqDTO.setCreateIp(ServletUtils.getClientIP());
+        smsCodeApi.sendSmsCode(reqDTO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long register(AppDsAuthRegisterReqVO reqVO) {
+        if (dsUserMapper.selectByMobile(reqVO.getMobile()) != null) {
             throw exception(USER_MOBILE_EXISTS);
         }
+//        SmsCodeUseReqDTO smsCodeReqDTO = new SmsCodeUseReqDTO();
+//        smsCodeReqDTO.setMobile(reqVO.getMobile());
+//        smsCodeReqDTO.setCode(reqVO.getSmsCode());
+//        smsCodeReqDTO.setScene(SmsSceneEnum.MEMBER_LOGIN.getScene());
+//        smsCodeReqDTO.setUsedIp(ServletUtils.getClientIP());
+//        smsCodeApi.useSmsCode(smsCodeReqDTO);
         DsUser dsUser = new DsUser();
-        dsUser.setMobile(mobile);
-        dsUser.setNickname(StringUtils.hasText(nickname) ? nickname : mobile);
-        dsUser.setPassword(passwordEncoder.encode(password));
-        dsUser.setAvatar(avatar);
-        dsUser.setRegisterChannel(registerChannel);
+        dsUser.setMobile(reqVO.getMobile());
+        dsUser.setNickname(StringUtils.hasText(reqVO.getNickname()) ? reqVO.getNickname() : reqVO.getMobile());
+        dsUser.setPassword(passwordEncoder.encode(reqVO.getPassword()));
+        dsUser.setAvatar(reqVO.getAvatar());
+        dsUser.setRegisterChannel(reqVO.getRegisterChannel());
         dsUser.setStatus(CommonStatusEnum.ENABLE.getStatus());
         dsUserMapper.insert(dsUser);
+        DsUserAddress userAddress = new DsUserAddress();
+        userAddress.setUid(dsUser.getId());
+        userAddress.setReceiverName(reqVO.getReceiverName());
+        userAddress.setReceiverMobile(reqVO.getReceiverMobile());
+        userAddress.setProvince(reqVO.getProvince());
+        userAddress.setCity(reqVO.getCity());
+        userAddress.setDistrict(reqVO.getDistrict());
+        userAddress.setDetailAddress(reqVO.getDetailAddress());
+        userAddress.setIsDefault(1);
+        dsUserAddressMapper.insert(userAddress);
+        if (reqVO.getInviterId() != null) {
+            dsInviteRelationService.bindInviteRelation(reqVO.getInviterId(), dsUser.getId());
+        }
         return dsUser.getId();
     }
 

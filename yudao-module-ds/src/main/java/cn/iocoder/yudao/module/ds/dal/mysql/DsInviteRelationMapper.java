@@ -6,4 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface DsInviteRelationMapper extends BaseMapperX<DsInviteRelation> {
+
+    default DsInviteRelation selectByInviteeId(Long inviteeId) {
+        return selectOne(DsInviteRelation::getInviteeId, inviteeId);
+    }
 }
