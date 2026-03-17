@@ -76,6 +76,12 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
         return dsInviteRelationMapper.selectByInviteeId(inviteeId) != null;
     }
 
+    @Override
+    public Long getInviterIdByInviteeId(Long inviteeId) {
+        DsInviteRelation relation = dsInviteRelationMapper.selectByInviteeId(inviteeId);
+        return relation == null ? null : relation.getInviterId();
+    }
+
     private void validateInviterExists(Long inviterId) {
         if (dsUserMapper.selectById(inviterId) == null) {
             throw exception(INVITER_NOT_EXISTS);

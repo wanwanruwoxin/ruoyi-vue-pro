@@ -144,4 +144,213 @@ ON DUPLICATE KEY UPDATE
   `updater` = VALUES(`updater`),
   `tenant_id` = VALUES(`tenant_id`);
 
+CREATE TABLE IF NOT EXISTS `ds_point_account` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `uid` bigint NOT NULL,
+  `available_points` decimal(12, 2) NOT NULL DEFAULT 0.00,
+  `frozen_points` decimal(12, 2) NOT NULL DEFAULT 0.00,
+  `total_earned_points` decimal(12, 2) NOT NULL DEFAULT 0.00,
+  `total_spent_points` decimal(12, 2) NOT NULL DEFAULT 0.00,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_ds_point_account_uid` (`uid`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_point_ledger` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `uid` bigint NOT NULL,
+  `change_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `points` decimal(12, 2) NOT NULL,
+  `balance_after` decimal(12, 2) NOT NULL,
+  `biz_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `biz_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `source_uid` bigint NULL DEFAULT NULL,
+  `reward_rule_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `occurred_at` datetime NOT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_ds_point_ledger_uid_biz_time` (`uid`, `biz_type`, `occurred_at`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_reward_rule` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `rule_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `trigger_event` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reward_rate` decimal(10, 4) NOT NULL DEFAULT 0.0000,
+  `daily_cap_points` decimal(12, 2) NULL DEFAULT NULL,
+  `applicable_inviter_level` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `status` tinyint NOT NULL DEFAULT 0,
+  `effective_from` datetime NULL DEFAULT NULL,
+  `effective_to` datetime NULL DEFAULT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_ds_reward_rule_version` (`rule_version`) USING BTREE,
+  KEY `idx_ds_reward_rule_trigger_status` (`trigger_event`, `status`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'uid'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `uid` bigint NOT NULL AFTER `id`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'change_type'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `change_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL AFTER `uid`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'points'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `points` decimal(12, 2) NOT NULL AFTER `change_type`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'balance_after'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `balance_after` decimal(12, 2) NOT NULL AFTER `points`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'biz_type'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `biz_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL AFTER `balance_after`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'biz_no'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `biz_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `biz_type`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'source_uid'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `source_uid` bigint NULL DEFAULT NULL AFTER `biz_no`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'reward_rule_version'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `reward_rule_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `source_uid`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_point_ledger'
+    AND COLUMN_NAME = 'occurred_at'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_point_ledger` ADD COLUMN `occurred_at` datetime NOT NULL AFTER `reward_rule_version`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+INSERT INTO `ds_reward_rule` (`rule_version`, `trigger_event`, `reward_rate`, `daily_cap_points`, `applicable_inviter_level`, `status`, `effective_from`, `effective_to`, `creator`, `updater`, `tenant_id`)
+VALUES ('INVITE_REWARD_V1', 'MEMBERSHIP_ORDER_PAID_NORMAL', 0.5000, 300.00, 'ALL', 0, NOW(), NULL, '', '', 0),
+       ('SCOPE_MEMBERSHIP_V1', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'MEMBERSHIP_ORDER_PAY', 0, NOW(), NULL, '', '', 0),
+       ('SCOPE_SHOP_V1', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'SHOP_ORDER_PAY', 0, NOW(), NULL, '', '', 0)
+ON DUPLICATE KEY UPDATE
+  `trigger_event` = VALUES(`trigger_event`),
+  `reward_rate` = VALUES(`reward_rate`),
+  `daily_cap_points` = VALUES(`daily_cap_points`),
+  `applicable_inviter_level` = VALUES(`applicable_inviter_level`),
+  `status` = VALUES(`status`),
+  `effective_from` = VALUES(`effective_from`),
+  `effective_to` = VALUES(`effective_to`),
+  `updater` = VALUES(`updater`),
+  `tenant_id` = VALUES(`tenant_id`);
+
 SET FOREIGN_KEY_CHECKS = 1;

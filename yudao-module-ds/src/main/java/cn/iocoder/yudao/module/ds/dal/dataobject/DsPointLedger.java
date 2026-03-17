@@ -11,6 +11,9 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 @TableName("ds_point_ledger")
 @KeySequence("ds_point_ledger_seq")
 @Data
@@ -23,4 +26,13 @@ public class DsPointLedger extends TenantBaseDO {
 
     @TableId
     private Long id;
+    private Long uid;
+    private String changeType;
+    private BigDecimal points;
+    private BigDecimal balanceAfter;
+    private String bizType;
+    private String bizNo;
+    private Long sourceUid;
+    private String rewardRuleVersion;
+    private LocalDateTime occurredAt;
 }

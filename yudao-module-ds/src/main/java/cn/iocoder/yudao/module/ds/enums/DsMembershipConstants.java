@@ -61,4 +61,41 @@ public final class DsMembershipConstants {
         }
 
     }
+
+    @Getter
+    public enum PointChangeType {
+        EARN("EARN"),
+        SPEND("SPEND");
+
+        private final String code;
+
+        PointChangeType(String code) {
+            this.code = code;
+        }
+    }
+
+    @Getter
+    public enum PointBizType {
+        MEMBERSHIP_ORDER_PAY("MEMBERSHIP_ORDER_PAY"),
+        SHOP_ORDER_PAY("SHOP_ORDER_PAY"),
+        INVITE_MEMBERSHIP_REWARD("INVITE_MEMBERSHIP_REWARD");
+
+        private final String code;
+
+        PointBizType(String code) {
+            this.code = code;
+        }
+    }
+
+    @Getter
+    public enum RewardTriggerEvent {
+        MEMBERSHIP_ORDER_PAID_NORMAL("MEMBERSHIP_ORDER_PAID_NORMAL"),
+        POINT_CONSUME_SCOPE("POINT_CONSUME_SCOPE");
+
+        private final String code;
+
+        RewardTriggerEvent(String code) {
+            this.code = code;
+        }
+    }
 }

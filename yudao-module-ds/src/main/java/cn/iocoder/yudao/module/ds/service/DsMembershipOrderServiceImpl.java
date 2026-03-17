@@ -2,20 +2,29 @@ package cn.iocoder.yudao.module.ds.service;
 
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipOrder;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipPlan;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsRewardRule;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipOrderMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.ADVANCED;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PayStatus.CLOSED;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PayStatus.PAID;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PayStatus.PENDING;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.INVITE_MEMBERSHIP_REWARD;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.MEMBERSHIP_ORDER_PAY;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PayStatus.REFUNDED;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RefundStatus.NONE;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RefundStatus.SUCCESS;
@@ -32,6 +41,14 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     private DsMembershipPlanService dsMembershipPlanService;
     @Resource
     private DsMembershipAccountService dsMembershipAccountService;
+    @Resource
+    private DsPointAccountService dsPointAccountService;
+    @Resource
+    private DsInviteRelationService dsInviteRelationService;
+    @Resource
+    private DsRewardRuleService dsRewardRuleService;
+    @Resource
+    private DsPointLedgerService dsPointLedgerService;
 
     @Override
     public DsMembershipOrder createOrder(Long uid, Long planId) {
@@ -55,12 +72,15 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (!PENDING.getCode().equals(order.getPayStatus())) {
             throw exception(MEMBERSHIP_ORDER_STATUS_ILLEGAL);
         }
+        DsMembershipPlan plan = dsMembershipPlanService.getPlan(order.getPlanId());
+        dsPointAccountService.spendPoints(uid, order.getPayableAmount(),
+                MEMBERSHIP_ORDER_PAY.getCode(), order.getOrderNo(), LocalDateTime.now());
         LocalDateTime paidAt = LocalDateTime.now();
         order.setPayStatus(PAID.getCode());
         order.setPaidAt(paidAt);
         dsMembershipOrderMapper.updateById(order);
-        DsMembershipPlan plan = dsMembershipPlanService.getPlan(order.getPlanId());
         dsMembershipAccountService.activateMembership(uid, plan, paidAt);
+        rewardInviterIfMatched(uid, order, plan, paidAt);
     }
 
     @Override
@@ -99,5 +119,44 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
 
     private String generateOrderNo() {
         return "M" + IdUtil.fastSimpleUUID();
+    }
+
+    private void rewardInviterIfMatched(Long inviteeUid, DsMembershipOrder order, DsMembershipPlan plan, LocalDateTime paidAt) {
+        if (!NORMAL.getCode().equals(plan.getPlanCode())) {
+            return;
+        }
+        if (order.getPayableAmount().compareTo(new BigDecimal("199")) != 0) {
+            return;
+        }
+        Long inviterId = dsInviteRelationService.getInviterIdByInviteeId(inviteeUid);
+        if (inviterId == null) {
+            return;
+        }
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRule();
+        if (rule == null || rule.getRewardRate() == null || rule.getRewardRate().signum() <= 0) {
+            return;
+        }
+        BigDecimal rewardPoints = order.getPayableAmount().multiply(rule.getRewardRate()).setScale(2, RoundingMode.HALF_UP);
+        DsMembershipAccount inviterAccount = dsMembershipAccountService.getAccount(inviterId);
+        boolean advancedMember = ADVANCED.getCode().equals(inviterAccount.getCurrentPlanCode());
+        if (!advancedMember && rule.getDailyCapPoints() != null) {
+            LocalDate rewardDate = paidAt.toLocalDate();
+            LocalDateTime startTime = rewardDate.atStartOfDay();
+            LocalDateTime endTime = rewardDate.plusDays(1).atStartOfDay();
+            BigDecimal rewardedToday = dsPointLedgerService.sumPointsByUidAndBizTypeBetween(inviterId,
+                    INVITE_MEMBERSHIP_REWARD.getCode(), startTime, endTime);
+            BigDecimal remaining = rule.getDailyCapPoints().subtract(rewardedToday);
+            if (remaining.signum() <= 0) {
+                return;
+            }
+            if (rewardPoints.compareTo(remaining) > 0) {
+                rewardPoints = remaining;
+            }
+        }
+        if (rewardPoints.signum() <= 0) {
+            return;
+        }
+        dsPointAccountService.earnPoints(inviterId, rewardPoints, INVITE_MEMBERSHIP_REWARD.getCode(),
+                order.getOrderNo(), inviteeUid, rule.getRuleVersion(), paidAt);
     }
 }

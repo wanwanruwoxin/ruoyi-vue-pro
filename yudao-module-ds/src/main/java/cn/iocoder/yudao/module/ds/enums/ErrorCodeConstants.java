@@ -14,4 +14,6 @@ public interface ErrorCodeConstants {
     ErrorCode MEMBERSHIP_PLAN_NOT_EXISTS = new ErrorCode(1_060_000_007, "会员档位不存在");
     ErrorCode MEMBERSHIP_ORDER_NOT_EXISTS = new ErrorCode(1_060_000_008, "会员订单不存在");
     ErrorCode MEMBERSHIP_ORDER_STATUS_ILLEGAL = new ErrorCode(1_060_000_009, "会员订单状态不合法");
+    ErrorCode POINT_ACCOUNT_INSUFFICIENT = new ErrorCode(1_060_000_010, "积分余额不足");
+    ErrorCode POINT_CONSUME_SCOPE_DISABLED = new ErrorCode(1_060_000_011, "当前场景不支持积分消费");
 }
