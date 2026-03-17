@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.MEMBERSHIP_ORDER_PAY;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.POINT_GIFT_SEND;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.SHOP_ORDER_PAY;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.MEMBERSHIP_ORDER_PAID_NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.POINT_CONSUME_SCOPE;
@@ -26,6 +27,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     private DsRewardRuleMapper dsRewardRuleMapper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DsRewardRule getMembershipInviteRewardRule() {
         initDefaultRulesIfAbsent();
         LocalDateTime now = LocalDateTime.now();
@@ -33,6 +35,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void validatePointConsumeScope(String bizType) {
         initDefaultRulesIfAbsent();
         LocalDateTime now = LocalDateTime.now();
@@ -47,6 +50,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         initInviteRewardRule();
         initConsumeScopeRule(MEMBERSHIP_ORDER_PAY.getCode(), "SCOPE_MEMBERSHIP_V1");
         initConsumeScopeRule(SHOP_ORDER_PAY.getCode(), "SCOPE_SHOP_V1");
+        initConsumeScopeRule(POINT_GIFT_SEND.getCode(), "SCOPE_GIFT_V1");
     }
 
     private void initInviteRewardRule() {

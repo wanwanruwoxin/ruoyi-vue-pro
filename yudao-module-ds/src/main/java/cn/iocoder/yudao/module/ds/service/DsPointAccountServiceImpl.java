@@ -1,8 +1,11 @@
 package cn.iocoder.yudao.module.ds.service;
 
+import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointLedger;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsPointAccountMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +18,10 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointChangeType.EARN;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointChangeType.SPEND;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_ACCOUNT_INSUFFICIENT;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_GIFT_SELF_NOT_ALLOWED;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_GIFT_TARGET_NOT_EXISTS;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.POINT_GIFT_RECEIVE;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.POINT_GIFT_SEND;
 
 @Service
 @Validated
@@ -26,6 +33,8 @@ public class DsPointAccountServiceImpl implements DsPointAccountService {
     private DsPointLedgerService dsPointLedgerService;
     @Resource
     private DsRewardRuleService dsRewardRuleService;
+    @Resource
+    private DsUserMapper dsUserMapper;
 
     @Override
     public DsPointAccount getOrCreateAccount(Long uid) {
@@ -95,6 +104,27 @@ public class DsPointAccountServiceImpl implements DsPointAccountService {
                 .rewardRuleVersion(null)
                 .occurredAt(occurredAt != null ? occurredAt : LocalDateTime.now())
                 .build());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void giftPoints(Long uid, String targetMobile, BigDecimal points) {
+        DsUser targetUser = dsUserMapper.selectByMobile(targetMobile);
+        if (targetUser == null) {
+            throw exception(POINT_GIFT_TARGET_NOT_EXISTS);
+        }
+        Long targetUid = targetUser.getId();
+        if (uid.equals(targetUid)) {
+            throw exception(POINT_GIFT_SELF_NOT_ALLOWED);
+        }
+        BigDecimal changedPoints = normalizePoints(points);
+        if (changedPoints.signum() <= 0) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        String bizNo = "G" + IdUtil.fastSimpleUUID();
+        spendPoints(uid, changedPoints, POINT_GIFT_SEND.getCode(), bizNo, now);
+        earnPoints(targetUid, changedPoints, POINT_GIFT_RECEIVE.getCode(), bizNo, uid, null, now);
     }
 
     private BigDecimal normalizePoints(BigDecimal points) {

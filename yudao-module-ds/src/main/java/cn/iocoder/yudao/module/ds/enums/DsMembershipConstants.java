@@ -78,7 +78,9 @@ public final class DsMembershipConstants {
     public enum PointBizType {
         MEMBERSHIP_ORDER_PAY("MEMBERSHIP_ORDER_PAY"),
         SHOP_ORDER_PAY("SHOP_ORDER_PAY"),
-        INVITE_MEMBERSHIP_REWARD("INVITE_MEMBERSHIP_REWARD");
+        INVITE_MEMBERSHIP_REWARD("INVITE_MEMBERSHIP_REWARD"),
+        POINT_GIFT_SEND("POINT_GIFT_SEND"),
+        POINT_GIFT_RECEIVE("POINT_GIFT_RECEIVE");
 
         private final String code;
 

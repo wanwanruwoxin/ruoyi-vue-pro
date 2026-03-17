@@ -16,4 +16,6 @@ public interface ErrorCodeConstants {
     ErrorCode MEMBERSHIP_ORDER_STATUS_ILLEGAL = new ErrorCode(1_060_000_009, "会员订单状态不合法");
     ErrorCode POINT_ACCOUNT_INSUFFICIENT = new ErrorCode(1_060_000_010, "积分余额不足");
     ErrorCode POINT_CONSUME_SCOPE_DISABLED = new ErrorCode(1_060_000_011, "当前场景不支持积分消费");
+    ErrorCode POINT_GIFT_TARGET_NOT_EXISTS = new ErrorCode(1_060_000_012, "赠送对象不存在");
+    ErrorCode POINT_GIFT_SELF_NOT_ALLOWED = new ErrorCode(1_060_000_013, "不能给自己赠送积分");
 }

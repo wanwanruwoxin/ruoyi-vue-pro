@@ -13,4 +13,6 @@ public interface DsPointAccountService {
                     Long sourceUid, String rewardRuleVersion, LocalDateTime occurredAt);
 
     void spendPoints(Long uid, BigDecimal points, String bizType, String bizNo, LocalDateTime occurredAt);
+
+    void giftPoints(Long uid, String targetMobile, BigDecimal points);
 }

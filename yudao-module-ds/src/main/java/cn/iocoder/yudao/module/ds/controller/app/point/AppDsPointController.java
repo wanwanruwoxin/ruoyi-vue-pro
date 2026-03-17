@@ -2,13 +2,16 @@ package cn.iocoder.yudao.module.ds.controller.app.point;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.ds.controller.app.point.vo.AppDsPointAccountRespVO;
+import cn.iocoder.yudao.module.ds.controller.app.point.vo.AppDsPointGiftReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import cn.iocoder.yudao.module.ds.service.DsPointAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,5 +38,12 @@ public class AppDsPointController {
         respVO.setTotalEarnedPoints(account.getTotalEarnedPoints());
         respVO.setTotalSpentPoints(account.getTotalSpentPoints());
         return success(respVO);
+    }
+
+    @PostMapping("/gift")
+    @Operation(summary = "赠送积分")
+    public CommonResult<Boolean> giftPoints(@RequestBody @Valid AppDsPointGiftReqVO reqVO) {
+        dsPointAccountService.giftPoints(getLoginUserId(), reqVO.getTargetMobile(), reqVO.getPoints());
+        return success(true);
     }
 }
