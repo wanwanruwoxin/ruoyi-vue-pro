@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.ds.dal.mysql;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsMyProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductListReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
@@ -31,6 +32,15 @@ public interface DsProductMapper extends BaseMapperX<DsProduct> {
         wrapper.orderByDesc(DsProduct::getId);
         applySort(wrapper, reqVO.getSortType());
         return selectPage(reqVO, wrapper);
+    }
+
+    default PageResult<DsProduct> selectAdminPage(DsProductPageReqVO reqVO) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<DsProduct>()
+                .eqIfPresent(DsProduct::getShopId, reqVO.getShopId())
+                .likeIfPresent(DsProduct::getProductName, reqVO.getProductName())
+                .eqIfPresent(DsProduct::getSaleStatus, reqVO.getSaleStatus())
+                .orderByAsc(DsProduct::getSort)
+                .orderByDesc(DsProduct::getId));
     }
 
     private static void applySort(LambdaQueryWrapperX<DsProduct> wrapper, String sortType) {

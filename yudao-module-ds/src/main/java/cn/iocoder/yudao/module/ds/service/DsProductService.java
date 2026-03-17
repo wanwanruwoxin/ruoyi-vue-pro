@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.ds.service;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSaveReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsMyProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductListReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductSaveReqVO;
@@ -18,4 +20,14 @@ public interface DsProductService {
     PageResult<DsProduct> getMyProductPage(Long uid, AppDsMyProductPageReqVO reqVO);
 
     PageResult<DsProduct> getShelfProductPage(AppDsProductListReqVO reqVO);
+
+    Long createAdminProduct(@Valid DsProductSaveReqVO reqVO);
+
+    void updateAdminProduct(@Valid DsProductSaveReqVO reqVO);
+
+    void deleteAdminProduct(Long id);
+
+    DsProduct getAdminProduct(Long id);
+
+    PageResult<DsProduct> getAdminProductPage(DsProductPageReqVO reqVO);
 }

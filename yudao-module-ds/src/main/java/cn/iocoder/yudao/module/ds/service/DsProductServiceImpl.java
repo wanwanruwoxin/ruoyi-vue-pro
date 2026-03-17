@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.ds.service;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSaveReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsMyProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductListReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductSaveReqVO;
@@ -75,6 +77,42 @@ public class DsProductServiceImpl implements DsProductService {
         return dsProductMapper.selectShelfPage(reqVO.getShopId(), reqVO);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long createAdminProduct(@Valid DsProductSaveReqVO reqVO) {
+        dsShopService.validateShopById(reqVO.getShopId());
+        DsProduct product = new DsProduct();
+        fillProductFields(product, reqVO);
+        dsProductMapper.insert(product);
+        return product.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAdminProduct(@Valid DsProductSaveReqVO reqVO) {
+        DsProduct product = validateAdminProduct(reqVO.getId());
+        dsShopService.validateShopById(reqVO.getShopId());
+        fillProductFields(product, reqVO);
+        dsProductMapper.updateById(product);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAdminProduct(Long id) {
+        validateAdminProduct(id);
+        dsProductMapper.deleteById(id);
+    }
+
+    @Override
+    public DsProduct getAdminProduct(Long id) {
+        return validateAdminProduct(id);
+    }
+
+    @Override
+    public PageResult<DsProduct> getAdminProductPage(DsProductPageReqVO reqVO) {
+        return dsProductMapper.selectAdminPage(reqVO);
+    }
+
     private DsProduct validateOwnerProduct(Long uid, Long productId) {
         DsProduct product = dsProductMapper.selectById(productId);
         if (product == null) {
@@ -95,6 +133,14 @@ public class DsProductServiceImpl implements DsProductService {
         return shop;
     }
 
+    private DsProduct validateAdminProduct(Long id) {
+        DsProduct product = dsProductMapper.selectById(id);
+        if (product == null) {
+            throw exception(PRODUCT_NOT_EXISTS);
+        }
+        return product;
+    }
+
     private static void fillProductFields(DsProduct product, AppDsProductSaveReqVO reqVO) {
         product.setProductName(reqVO.getProductName());
         product.setPriceAmount(reqVO.getPriceAmount());
@@ -103,6 +149,18 @@ public class DsProductServiceImpl implements DsProductService {
         product.setSort(reqVO.getSort());
         product.setImageUrls(joinUrls(reqVO.getImageUrls()));
         product.setVideoUrls(joinUrls(reqVO.getVideoUrls()));
+    }
+
+    private static void fillProductFields(DsProduct product, DsProductSaveReqVO reqVO) {
+        product.setShopId(reqVO.getShopId());
+        product.setProductName(reqVO.getProductName());
+        product.setPriceAmount(reqVO.getPriceAmount());
+        product.setStock(reqVO.getStock());
+        product.setDetailDesc(reqVO.getDetailDesc());
+        product.setSort(reqVO.getSort());
+        product.setSaleStatus(reqVO.getSaleStatus());
+        product.setImageUrls(reqVO.getImageUrls());
+        product.setVideoUrls(reqVO.getVideoUrls());
     }
 
     private static String joinUrls(List<String> urls) {
