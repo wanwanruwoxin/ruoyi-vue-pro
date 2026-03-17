@@ -14,4 +14,6 @@ public interface DsInviteRelationService {
     boolean hasInviterBound(Long inviteeId);
 
     Long getInviterIdByInviteeId(Long inviteeId);
+
+    Long getInviterIdByInviteeIdAndLevel(Long inviteeId, Integer level);
 }

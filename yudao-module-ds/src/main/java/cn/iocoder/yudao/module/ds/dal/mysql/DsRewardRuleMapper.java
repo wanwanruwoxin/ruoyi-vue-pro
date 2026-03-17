@@ -24,6 +24,21 @@ public interface DsRewardRuleMapper extends BaseMapperX<DsRewardRule> {
                 .last("LIMIT 1"));
     }
 
+    default DsRewardRule selectActiveRuleByTriggerEventAndInviterLevel(String triggerEvent, String inviterLevel, LocalDateTime now) {
+        return selectOne(new LambdaQueryWrapperX<DsRewardRule>()
+                .eq(DsRewardRule::getTriggerEvent, triggerEvent)
+                .eq(DsRewardRule::getApplicableInviterLevel, inviterLevel)
+                .eq(DsRewardRule::getStatus, 0)
+                .and(wrapper -> wrapper.isNull(DsRewardRule::getEffectiveFrom)
+                        .or()
+                        .le(DsRewardRule::getEffectiveFrom, now))
+                .and(wrapper -> wrapper.isNull(DsRewardRule::getEffectiveTo)
+                        .or()
+                        .ge(DsRewardRule::getEffectiveTo, now))
+                .orderByDesc(DsRewardRule::getId)
+                .last("LIMIT 1"));
+    }
+
     default DsRewardRule selectActiveScopeRule(String triggerEvent, String scopeCode, LocalDateTime now) {
         return selectOne(new LambdaQueryWrapperX<DsRewardRule>()
                 .eq(DsRewardRule::getTriggerEvent, triggerEvent)

@@ -34,6 +34,8 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.MEMBERSHIP_ORD
 @Service
 @Validated
 public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
+    private static final int RELATION_LEVEL_1 = 1;
+    private static final int RELATION_LEVEL_2 = 2;
 
     @Resource
     private DsMembershipOrderMapper dsMembershipOrderMapper;
@@ -128,11 +130,16 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (order.getPayableAmount().compareTo(new BigDecimal("199")) != 0) {
             return;
         }
-        Long inviterId = dsInviteRelationService.getInviterIdByInviteeId(inviteeUid);
+        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1);
+        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_2);
+    }
+
+    private void rewardForRelationLevel(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt, int relationLevel) {
+        Long inviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, relationLevel);
         if (inviterId == null) {
             return;
         }
-        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRule();
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(relationLevel);
         if (rule == null || rule.getRewardRate() == null || rule.getRewardRate().signum() <= 0) {
             return;
         }
@@ -156,7 +163,8 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (rewardPoints.signum() <= 0) {
             return;
         }
+        String rewardBizNo = relationLevel == RELATION_LEVEL_1 ? order.getOrderNo() : order.getOrderNo() + "-L2";
         dsPointAccountService.earnPoints(inviterId, rewardPoints, INVITE_MEMBERSHIP_REWARD.getCode(),
-                order.getOrderNo(), inviteeUid, rule.getRuleVersion(), paidAt);
+                rewardBizNo, inviteeUid, rule.getRuleVersion(), paidAt);
     }
 }

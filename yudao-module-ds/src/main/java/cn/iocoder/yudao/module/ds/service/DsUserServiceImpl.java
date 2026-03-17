@@ -7,27 +7,20 @@ import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
-import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserAddressMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
-import cn.iocoder.yudao.module.system.api.sms.SmsCodeApi;
-import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeSendReqDTO;
-import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeUseReqDTO;
-import cn.iocoder.yudao.module.system.enums.sms.SmsSceneEnum;
 import cn.iocoder.yudao.module.system.enums.oauth2.OAuth2ClientConstants;
-import cn.iocoder.yudao.framework.common.util.servlet.ServletUtils;
 import jakarta.annotation.Resource;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.AUTH_LOGIN_BAD_CREDENTIALS;
-import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.AUTH_LOGIN_USER_DISABLED;
-import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.USER_MOBILE_EXISTS;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.*;
 
 @Service
 @Validated
@@ -43,17 +36,17 @@ public class DsUserServiceImpl implements DsUserService {
     private DsUserAddressMapper dsUserAddressMapper;
     @Resource
     private DsInviteRelationService dsInviteRelationService;
-    @Resource
-    private SmsCodeApi smsCodeApi;
+//    @Resource
+//    private SmsCodeApi smsCodeApi;
 
-    @Override
-    public void sendRegisterSmsCode(String mobile) {
-        SmsCodeSendReqDTO reqDTO = new SmsCodeSendReqDTO();
-        reqDTO.setMobile(mobile);
-        reqDTO.setScene(SmsSceneEnum.MEMBER_LOGIN.getScene());
-        reqDTO.setCreateIp(ServletUtils.getClientIP());
-        smsCodeApi.sendSmsCode(reqDTO);
-    }
+//    @Override
+//    public void sendRegisterSmsCode(String mobile) {
+//        SmsCodeSendReqDTO reqDTO = new SmsCodeSendReqDTO();
+//        reqDTO.setMobile(mobile);
+//        reqDTO.setScene(SmsSceneEnum.MEMBER_LOGIN.getScene());
+//        reqDTO.setCreateIp(ServletUtils.getClientIP());
+//        smsCodeApi.sendSmsCode(reqDTO);
+//    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

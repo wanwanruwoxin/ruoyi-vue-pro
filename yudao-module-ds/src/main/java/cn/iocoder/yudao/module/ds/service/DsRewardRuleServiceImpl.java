@@ -22,6 +22,8 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_CONSUME_
 @Service
 @Validated
 public class DsRewardRuleServiceImpl implements DsRewardRuleService {
+    private static final String INVITER_LEVEL_1 = "LEVEL_1";
+    private static final String INVITER_LEVEL_2 = "LEVEL_2";
 
     @Resource
     private DsRewardRuleMapper dsRewardRuleMapper;
@@ -31,6 +33,20 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     public DsRewardRule getMembershipInviteRewardRule() {
         initDefaultRulesIfAbsent();
         LocalDateTime now = LocalDateTime.now();
+        return dsRewardRuleMapper.selectActiveRuleByTriggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), now);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DsRewardRule getMembershipInviteRewardRuleByLevel(Integer relationLevel) {
+        initDefaultRulesIfAbsent();
+        LocalDateTime now = LocalDateTime.now();
+        String inviterLevel = relationLevel != null && relationLevel == 2 ? INVITER_LEVEL_2 : INVITER_LEVEL_1;
+        DsRewardRule rule = dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevel(
+                MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, now);
+        if (rule != null) {
+            return rule;
+        }
         return dsRewardRuleMapper.selectActiveRuleByTriggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), now);
     }
 
@@ -54,16 +70,48 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     }
 
     private void initInviteRewardRule() {
-        DsRewardRule existed = dsRewardRuleMapper.selectOne(DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode());
+        DsRewardRule existed = dsRewardRuleMapper.selectFirstOne(DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode());
         if (existed != null) {
+            initSecondLevelInviteRewardRule();
             return;
         }
-        DsRewardRule rule = DsRewardRule.builder()
+        DsRewardRule firstLevelRule = DsRewardRule.builder()
                 .ruleVersion("INVITE_REWARD_V1")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
                 .rewardRate(new BigDecimal("0.50"))
                 .dailyCapPoints(new BigDecimal("300"))
-                .applicableInviterLevel("ALL")
+                .applicableInviterLevel(INVITER_LEVEL_1)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .effectiveFrom(LocalDateTime.now())
+                .effectiveTo(null)
+                .build();
+        dsRewardRuleMapper.insert(firstLevelRule);
+        DsRewardRule secondLevelRule = DsRewardRule.builder()
+                .ruleVersion("INVITE_REWARD_LEVEL2_V1")
+                .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .rewardRate(new BigDecimal("0.20"))
+                .dailyCapPoints(new BigDecimal("150"))
+                .applicableInviterLevel(INVITER_LEVEL_2)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .effectiveFrom(LocalDateTime.now())
+                .effectiveTo(null)
+                .build();
+        dsRewardRuleMapper.insert(secondLevelRule);
+    }
+
+    private void initSecondLevelInviteRewardRule() {
+        DsRewardRule secondLevelRule = dsRewardRuleMapper.selectFirstOne(
+                DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode(),
+                DsRewardRule::getApplicableInviterLevel, INVITER_LEVEL_2);
+        if (secondLevelRule != null) {
+            return;
+        }
+        DsRewardRule rule = DsRewardRule.builder()
+                .ruleVersion("INVITE_REWARD_LEVEL2_V1")
+                .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .rewardRate(new BigDecimal("0.20"))
+                .dailyCapPoints(new BigDecimal("150"))
+                .applicableInviterLevel(INVITER_LEVEL_2)
                 .status(CommonStatusEnum.ENABLE.getStatus())
                 .effectiveFrom(LocalDateTime.now())
                 .effectiveTo(null)

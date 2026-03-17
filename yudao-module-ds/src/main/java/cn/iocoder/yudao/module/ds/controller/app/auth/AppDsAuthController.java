@@ -7,7 +7,6 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
-import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthSmsSendReqVO;
 import cn.iocoder.yudao.module.ds.service.DsUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,11 +16,7 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
@@ -43,13 +38,13 @@ public class AppDsAuthController {
         return success(dsUserService.register(reqVO));
     }
 
-    @PostMapping("/send-register-sms-code")
-    @Operation(summary = "发送注册短信验证码")
-    @PermitAll
-    public CommonResult<Boolean> sendRegisterSmsCode(@RequestBody @Valid AppDsAuthSmsSendReqVO reqVO) {
-        dsUserService.sendRegisterSmsCode(reqVO.getMobile());
-        return success(true);
-    }
+//    @PostMapping("/send-register-sms-code")
+//    @Operation(summary = "发送注册短信验证码")
+//    @PermitAll
+//    public CommonResult<Boolean> sendRegisterSmsCode(@RequestBody @Valid AppDsAuthSmsSendReqVO reqVO) {
+//        dsUserService.sendRegisterSmsCode(reqVO.getMobile());
+//        return success(true);
+//    }
 
     @PostMapping("/login")
     @Operation(summary = "手机号登录")

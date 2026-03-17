@@ -21,6 +21,8 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITER_NOT_EX
 public class DsInviteRelationServiceImpl implements DsInviteRelationService {
 
     private static final String INVITE_LINK_TEMPLATE = "/ds/invite/register?inviterId=%d";
+    private static final int DIRECT_LEVEL = 1;
+    private static final int SECOND_LEVEL = 2;
 
     @Resource
     private DsInviteRelationMapper dsInviteRelationMapper;
@@ -62,13 +64,11 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
             throw exception(INVITE_RELATION_EXISTS);
         }
         validateNoInviteLoop(inviterId, inviteeId);
-        DsInviteRelation relation = new DsInviteRelation();
-        relation.setInviterId(inviterId);
-        relation.setInviteeId(inviteeId);
-        relation.setLevel(1);
-        relation.setSourceQrCode(buildInviteLink(inviterId));
-        relation.setBindStatus(1);
-        dsInviteRelationMapper.insert(relation);
+        createRelationIfAbsent(inviterId, inviteeId, DIRECT_LEVEL);
+        DsInviteRelation parentRelation = dsInviteRelationMapper.selectByInviteeIdAndLevel(inviterId, DIRECT_LEVEL);
+        if (parentRelation != null && !inviteeId.equals(parentRelation.getInviterId())) {
+            createRelationIfAbsent(parentRelation.getInviterId(), inviteeId, SECOND_LEVEL);
+        }
     }
 
     @Override
@@ -79,6 +79,12 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
     @Override
     public Long getInviterIdByInviteeId(Long inviteeId) {
         DsInviteRelation relation = dsInviteRelationMapper.selectByInviteeId(inviteeId);
+        return relation == null ? null : relation.getInviterId();
+    }
+
+    @Override
+    public Long getInviterIdByInviteeIdAndLevel(Long inviteeId, Integer level) {
+        DsInviteRelation relation = dsInviteRelationMapper.selectByInviteeIdAndLevel(inviteeId, level);
         return relation == null ? null : relation.getInviterId();
     }
 
@@ -98,8 +104,22 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
             if (currentInviterId.equals(inviteeId)) {
                 throw exception(INVITE_BIND_LOOP);
             }
-            DsInviteRelation currentRelation = dsInviteRelationMapper.selectByInviteeId(currentInviterId);
+            DsInviteRelation currentRelation = dsInviteRelationMapper.selectByInviteeIdAndLevel(currentInviterId, DIRECT_LEVEL);
             currentInviterId = currentRelation == null ? null : currentRelation.getInviterId();
         }
+    }
+
+    private void createRelationIfAbsent(Long inviterId, Long inviteeId, Integer level) {
+        DsInviteRelation existed = dsInviteRelationMapper.selectByInviterIdAndInviteeIdAndLevel(inviterId, inviteeId, level);
+        if (existed != null) {
+            return;
+        }
+        DsInviteRelation relation = new DsInviteRelation();
+        relation.setInviterId(inviterId);
+        relation.setInviteeId(inviteeId);
+        relation.setLevel(level);
+        relation.setSourceQrCode(buildInviteLink(inviterId));
+        relation.setBindStatus(1);
+        dsInviteRelationMapper.insert(relation);
     }
 }

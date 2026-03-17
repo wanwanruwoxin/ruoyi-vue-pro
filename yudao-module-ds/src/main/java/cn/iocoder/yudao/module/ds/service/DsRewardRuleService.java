@@ -6,5 +6,7 @@ public interface DsRewardRuleService {
 
     DsRewardRule getMembershipInviteRewardRule();
 
+    DsRewardRule getMembershipInviteRewardRuleByLevel(Integer relationLevel);
+
     void validatePointConsumeScope(String bizType);
 }
