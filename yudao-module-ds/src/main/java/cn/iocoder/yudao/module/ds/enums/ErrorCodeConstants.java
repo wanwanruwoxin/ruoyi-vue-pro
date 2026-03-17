@@ -18,4 +18,9 @@ public interface ErrorCodeConstants {
     ErrorCode POINT_CONSUME_SCOPE_DISABLED = new ErrorCode(1_060_000_011, "当前场景不支持积分消费");
     ErrorCode POINT_GIFT_TARGET_NOT_EXISTS = new ErrorCode(1_060_000_012, "赠送对象不存在");
     ErrorCode POINT_GIFT_SELF_NOT_ALLOWED = new ErrorCode(1_060_000_013, "不能给自己赠送积分");
+    ErrorCode SHOP_ALREADY_EXISTS = new ErrorCode(1_060_000_014, "当前用户已创建店铺");
+    ErrorCode SHOP_NOT_EXISTS = new ErrorCode(1_060_000_015, "店铺不存在");
+    ErrorCode PRODUCT_NOT_EXISTS = new ErrorCode(1_060_000_016, "商品不存在");
+    ErrorCode PRODUCT_ACCESS_DENIED = new ErrorCode(1_060_000_017, "无权操作该商品");
+    ErrorCode PRODUCT_STATUS_ILLEGAL = new ErrorCode(1_060_000_018, "商品状态不合法");
 }

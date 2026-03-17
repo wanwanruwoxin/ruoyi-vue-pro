@@ -23,4 +23,14 @@ public class DsShop extends TenantBaseDO {
 
     @TableId
     private Long id;
+    private Long uid;
+    private String shopName;
+    private String avatarUrl;
+    private String intro;
+    private String contactMobile;
+    private String shipProvince;
+    private String shipCity;
+    private String shipDistrict;
+    private String shipDetailAddress;
+    private Integer sort;
 }

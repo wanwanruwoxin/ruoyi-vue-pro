@@ -11,6 +11,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.math.BigDecimal;
+
 @TableName("ds_product")
 @KeySequence("ds_product_seq")
 @Data
@@ -23,4 +25,13 @@ public class DsProduct extends TenantBaseDO {
 
     @TableId
     private Long id;
+    private Long shopId;
+    private String productName;
+    private BigDecimal priceAmount;
+    private Integer stock;
+    private String detailDesc;
+    private String imageUrls;
+    private String videoUrls;
+    private Integer saleStatus;
+    private Integer sort;
 }

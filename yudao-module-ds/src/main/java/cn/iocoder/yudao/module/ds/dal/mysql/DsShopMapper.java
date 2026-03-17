@@ -6,4 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface DsShopMapper extends BaseMapperX<DsShop> {
+
+    default DsShop selectByUid(Long uid) {
+        return selectOne(DsShop::getUid, uid);
+    }
 }
