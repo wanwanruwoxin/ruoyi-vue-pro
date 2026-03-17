@@ -27,10 +27,10 @@ public class AppDsAuthRegisterReqVO {
     @NotBlank(message = "注册渠道不能为空")
     private String registerChannel;
 
-    @Schema(description = "短信验证码", requiredMode = Schema.RequiredMode.REQUIRED, example = "1234")
-    @NotBlank(message = "短信验证码不能为空")
-    @Length(min = 4, max = 8, message = "短信验证码长度为 4-8 位")
-    private String smsCode;
+//    @Schema(description = "短信验证码", requiredMode = Schema.RequiredMode.REQUIRED, example = "1234")
+//    @NotBlank(message = "短信验证码不能为空")
+//    @Length(min = 4, max = 8, message = "短信验证码长度为 4-8 位")
+//    private String smsCode;
 
     @Schema(description = "邀请人用户编号", example = "1001")
     private Long inviterId;
