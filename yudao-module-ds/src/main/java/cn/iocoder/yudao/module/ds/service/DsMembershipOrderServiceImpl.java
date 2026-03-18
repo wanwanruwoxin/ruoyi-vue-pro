@@ -124,10 +124,11 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     }
 
     private void rewardInviterIfMatched(Long inviteeUid, DsMembershipOrder order, DsMembershipPlan plan, LocalDateTime paidAt) {
-        if (!NORMAL.getCode().equals(plan.getPlanCode())) {
+        if (NORMAL.getCode().equals(plan.getPlanCode())) {
+            rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1);
             return;
         }
-        if (order.getPayableAmount().compareTo(new BigDecimal("199")) != 0) {
+        if (!ADVANCED.getCode().equals(plan.getPlanCode())) {
             return;
         }
         rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1);
@@ -145,8 +146,8 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         }
         BigDecimal rewardPoints = order.getPayableAmount().multiply(rule.getRewardRate()).setScale(2, RoundingMode.HALF_UP);
         DsMembershipAccount inviterAccount = dsMembershipAccountService.getAccount(inviterId);
-        boolean advancedMember = ADVANCED.getCode().equals(inviterAccount.getCurrentPlanCode());
-        if (!advancedMember && rule.getDailyCapPoints() != null) {
+        boolean normalMember = NORMAL.getCode().equals(inviterAccount.getCurrentPlanCode());
+        if (normalMember && rule.getDailyCapPoints() != null) {
             LocalDate rewardDate = paidAt.toLocalDate();
             LocalDateTime startTime = rewardDate.atStartOfDay();
             LocalDateTime endTime = rewardDate.plusDays(1).atStartOfDay();
