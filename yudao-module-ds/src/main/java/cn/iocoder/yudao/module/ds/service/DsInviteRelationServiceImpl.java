@@ -10,6 +10,9 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITE_BIND_SELF;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITE_BIND_LOOP;
@@ -86,6 +89,13 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
     public Long getInviterIdByInviteeIdAndLevel(Long inviteeId, Integer level) {
         DsInviteRelation relation = dsInviteRelationMapper.selectByInviteeIdAndLevel(inviteeId, level);
         return relation == null ? null : relation.getInviterId();
+    }
+
+    @Override
+    public List<Long> getDirectInviteeIds(Long inviterId) {
+        return dsInviteRelationMapper.selectListByInviterIdAndLevel(inviterId, DIRECT_LEVEL).stream()
+                .map(DsInviteRelation::getInviteeId)
+                .collect(Collectors.toList());
     }
 
     private void validateInviterExists(Long inviterId) {

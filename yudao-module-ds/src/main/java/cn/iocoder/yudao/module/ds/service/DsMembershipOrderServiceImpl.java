@@ -36,6 +36,11 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.MEMBERSHIP_ORD
 public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     private static final int RELATION_LEVEL_1 = 1;
     private static final int RELATION_LEVEL_2 = 2;
+    private static final int RELATION_LEVEL_3 = 3;
+    private static final int TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD = 10;
+    private static final String TEAM_LEADER_LEVEL3_NEAREST = "TEAM_LEADER_LEVEL3_NEAREST";
+    private static final String TEAM_LEADER_LEVEL3_UPPER = "TEAM_LEADER_LEVEL3_UPPER";
+    private static final String SHAREHOLDER_POOL = "SHAREHOLDER_POOL";
 
     @Resource
     private DsMembershipOrderMapper dsMembershipOrderMapper;
@@ -133,6 +138,9 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         }
         rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1);
         rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_2);
+        upgradeTeamLeaderIfQualified(inviteeUid);
+        rewardForTeamLeaderLevel3(inviteeUid, order, paidAt);
+        rewardForShareholderPool(order, inviteeUid, paidAt);
     }
 
     private void rewardForRelationLevel(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt, int relationLevel) {
@@ -141,10 +149,125 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
             return;
         }
         DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(relationLevel);
-        if (rule == null || rule.getRewardRate() == null || rule.getRewardRate().signum() <= 0) {
+        if (rule == null) {
             return;
         }
-        BigDecimal rewardPoints = order.getPayableAmount().multiply(rule.getRewardRate()).setScale(2, RoundingMode.HALF_UP);
+        String rewardBizNo = relationLevel == RELATION_LEVEL_1 ? order.getOrderNo() : order.getOrderNo() + "-L2";
+        grantInviteReward(inviterId, order.getPayableAmount(), rule, rewardBizNo, inviteeUid, paidAt);
+    }
+
+    private void upgradeTeamLeaderIfQualified(Long inviteeUid) {
+        Long directInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, RELATION_LEVEL_1);
+        if (directInviterId == null || dsMembershipAccountService.isTeamLeader(directInviterId)) {
+            return;
+        }
+        List<Long> directInviteeIds = dsInviteRelationService.getDirectInviteeIds(directInviterId);
+        int advancedCount = 0;
+        for (Long directInviteeId : directInviteeIds) {
+            DsMembershipAccount inviteeAccount = dsMembershipAccountService.getAccountIfPresent(directInviteeId);
+            if (inviteeAccount != null && ADVANCED.getCode().equals(inviteeAccount.getCurrentPlanCode())) {
+                advancedCount++;
+            }
+            if (advancedCount >= TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD) {
+                dsMembershipAccountService.markAsTeamLeader(directInviterId);
+                return;
+            }
+        }
+    }
+
+    private void rewardForTeamLeaderLevel3(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt) {
+        List<Long> ancestors = listAncestorInviters(inviteeUid);
+        if (ancestors.size() < RELATION_LEVEL_3) {
+            return;
+        }
+        Long nearestTeamLeaderId = null;
+        Long upperTeamLeaderId = null;
+        for (int i = RELATION_LEVEL_3 - 1; i < ancestors.size(); i++) {
+            Long inviterId = ancestors.get(i);
+            if (!dsMembershipAccountService.isTeamLeader(inviterId)) {
+                continue;
+            }
+            if (nearestTeamLeaderId == null) {
+                nearestTeamLeaderId = inviterId;
+                continue;
+            }
+            upperTeamLeaderId = inviterId;
+            break;
+        }
+        if (nearestTeamLeaderId == null) {
+            return;
+        }
+        DsRewardRule nearestRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_NEAREST);
+        if (nearestRule != null) {
+            grantInviteReward(nearestTeamLeaderId, order.getPayableAmount(), nearestRule,
+                    order.getOrderNo() + "-TLN", inviteeUid, paidAt);
+        }
+        if (upperTeamLeaderId == null) {
+            return;
+        }
+        DsRewardRule upperRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_UPPER);
+        if (upperRule != null) {
+            grantInviteReward(upperTeamLeaderId, order.getPayableAmount(), upperRule,
+                    order.getOrderNo() + "-TLU", inviteeUid, paidAt);
+        }
+    }
+
+    private void rewardForShareholderPool(DsMembershipOrder order, Long inviteeUid, LocalDateTime paidAt) {
+        DsRewardRule poolRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(SHAREHOLDER_POOL);
+        if (poolRule == null || poolRule.getRewardRate() == null || poolRule.getRewardRate().signum() <= 0) {
+            return;
+        }
+        List<Long> shareholderUids = dsMembershipAccountService.listActiveShareholderUids();
+        if (shareholderUids.isEmpty()) {
+            return;
+        }
+        BigDecimal poolAmount = order.getPayableAmount().multiply(poolRule.getRewardRate()).setScale(2, RoundingMode.HALF_UP);
+        if (poolAmount.signum() <= 0) {
+            return;
+        }
+        BigDecimal average = poolAmount.divide(BigDecimal.valueOf(shareholderUids.size()), 2, RoundingMode.DOWN);
+        BigDecimal distributed = average.multiply(BigDecimal.valueOf(shareholderUids.size()));
+        BigDecimal remainder = poolAmount.subtract(distributed);
+        for (int i = 0; i < shareholderUids.size(); i++) {
+            Long shareholderUid = shareholderUids.get(i);
+            BigDecimal rewardAmount = i == shareholderUids.size() - 1 ? average.add(remainder) : average;
+            if (rewardAmount.signum() <= 0) {
+                continue;
+            }
+            grantRewardPoints(shareholderUid, rewardAmount, poolRule,
+                    order.getOrderNo() + "-SP-" + shareholderUid, inviteeUid, paidAt);
+        }
+    }
+
+    private List<Long> listAncestorInviters(Long inviteeUid) {
+        Long currentInviteeId = inviteeUid;
+        List<Long> ancestors = new java.util.ArrayList<>();
+        while (true) {
+            Long inviterId = dsInviteRelationService.getInviterIdByInviteeId(currentInviteeId);
+            if (inviterId == null) {
+                break;
+            }
+            ancestors.add(inviterId);
+            currentInviteeId = inviterId;
+        }
+        return ancestors;
+    }
+
+    private void grantInviteReward(Long inviterId, BigDecimal rewardBase, DsRewardRule rule,
+                                   String rewardBizNo, Long sourceUid, LocalDateTime paidAt) {
+        if (inviterId == null || rule == null || rewardBase == null
+                || rule.getRewardRate() == null || rule.getRewardRate().signum() <= 0) {
+            return;
+        }
+        BigDecimal rewardPoints = rewardBase.multiply(rule.getRewardRate()).setScale(2, RoundingMode.HALF_UP);
+        grantRewardPoints(inviterId, rewardPoints, rule, rewardBizNo, sourceUid, paidAt);
+    }
+
+    private void grantRewardPoints(Long inviterId, BigDecimal rewardPoints, DsRewardRule rule,
+                                   String rewardBizNo, Long sourceUid, LocalDateTime paidAt) {
+        if (rewardPoints == null || rewardPoints.signum() <= 0) {
+            return;
+        }
         DsMembershipAccount inviterAccount = dsMembershipAccountService.getAccount(inviterId);
         boolean normalMember = NORMAL.getCode().equals(inviterAccount.getCurrentPlanCode());
         if (normalMember && rule.getDailyCapPoints() != null) {
@@ -164,8 +287,7 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (rewardPoints.signum() <= 0) {
             return;
         }
-        String rewardBizNo = relationLevel == RELATION_LEVEL_1 ? order.getOrderNo() : order.getOrderNo() + "-L2";
         dsPointAccountService.earnPoints(inviterId, rewardPoints, INVITE_MEMBERSHIP_REWARD.getCode(),
-                rewardBizNo, inviteeUid, rule.getRuleVersion(), paidAt);
+                rewardBizNo, sourceUid, rule.getRuleVersion(), paidAt);
     }
 }

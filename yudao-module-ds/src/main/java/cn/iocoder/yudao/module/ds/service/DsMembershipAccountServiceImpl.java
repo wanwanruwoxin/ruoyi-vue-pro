@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.MemberStatus.ACTIVE;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.MemberStatus.EXPIRED;
@@ -18,6 +20,8 @@ import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.MemberStatu
 @Service
 @Validated
 public class DsMembershipAccountServiceImpl implements DsMembershipAccountService {
+    private static final Integer YES = 1;
+
 
     @Resource
     private DsMembershipAccountMapper dsMembershipAccountMapper;
@@ -38,8 +42,20 @@ public class DsMembershipAccountServiceImpl implements DsMembershipAccountServic
         account = DsMembershipAccount.builder()
                 .uid(uid)
                 .memberStatus(UNOPENED.getCode())
+                .teamLeader(0)
+                .shareholder(0)
                 .build();
         dsMembershipAccountMapper.insert(account);
+        return account;
+    }
+
+    @Override
+    public DsMembershipAccount getAccountIfPresent(Long uid) {
+        DsMembershipAccount account = dsMembershipAccountMapper.selectByUid(uid);
+        if (account == null) {
+            return null;
+        }
+        refreshMemberStatus(account);
         return account;
     }
 
@@ -63,6 +79,36 @@ public class DsMembershipAccountServiceImpl implements DsMembershipAccountServic
         account.setEffectiveTime(effectiveTime);
         account.setExpireTime(start.plusDays(plan.getDurationDays()));
         dsMembershipAccountMapper.updateById(account);
+    }
+
+    @Override
+    public boolean isTeamLeader(Long uid) {
+        DsMembershipAccount account = getAccountIfPresent(uid);
+        return account != null && YES.equals(account.getTeamLeader());
+    }
+
+    @Override
+    public boolean isShareholder(Long uid) {
+        DsMembershipAccount account = getAccountIfPresent(uid);
+        return account != null && YES.equals(account.getShareholder());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markAsTeamLeader(Long uid) {
+        DsMembershipAccount account = getOrCreateAccount(uid);
+        if (YES.equals(account.getTeamLeader())) {
+            return;
+        }
+        account.setTeamLeader(YES);
+        dsMembershipAccountMapper.updateById(account);
+    }
+
+    @Override
+    public List<Long> listActiveShareholderUids() {
+        return dsMembershipAccountMapper.selectListByShareholderAndMemberStatus(YES, ACTIVE.getCode()).stream()
+                .map(DsMembershipAccount::getUid)
+                .collect(Collectors.toList());
     }
 
     private void refreshMemberStatus(DsMembershipAccount account) {

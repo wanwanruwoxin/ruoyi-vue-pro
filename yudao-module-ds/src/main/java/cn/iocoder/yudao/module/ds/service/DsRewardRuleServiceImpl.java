@@ -24,6 +24,9 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_CONSUME_
 public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     private static final String INVITER_LEVEL_1 = "LEVEL_1";
     private static final String INVITER_LEVEL_2 = "LEVEL_2";
+    private static final String TEAM_LEADER_LEVEL3_NEAREST = "TEAM_LEADER_LEVEL3_NEAREST";
+    private static final String TEAM_LEADER_LEVEL3_UPPER = "TEAM_LEADER_LEVEL3_UPPER";
+    private static final String SHAREHOLDER_POOL = "SHAREHOLDER_POOL";
 
     @Resource
     private DsRewardRuleMapper dsRewardRuleMapper;
@@ -52,6 +55,14 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public DsRewardRule getMembershipInviteRewardRuleByInviterLevel(String inviterLevel) {
+        initDefaultRulesIfAbsent();
+        return dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevel(
+                MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void validatePointConsumeScope(String bizType) {
         initDefaultRulesIfAbsent();
         LocalDateTime now = LocalDateTime.now();
@@ -73,6 +84,12 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         DsRewardRule existed = dsRewardRuleMapper.selectFirstOne(DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode());
         if (existed != null) {
             initSecondLevelInviteRewardRule();
+            initSpecialInviteRewardRule(TEAM_LEADER_LEVEL3_NEAREST, "INVITE_REWARD_TEAM_LEADER_NEAREST_V1",
+                    new BigDecimal("0.05"), null);
+            initSpecialInviteRewardRule(TEAM_LEADER_LEVEL3_UPPER, "INVITE_REWARD_TEAM_LEADER_UPPER_V1",
+                    new BigDecimal("0.02"), null);
+            initSpecialInviteRewardRule(SHAREHOLDER_POOL, "INVITE_REWARD_SHAREHOLDER_POOL_V1",
+                    new BigDecimal("0.10"), null);
             return;
         }
         DsRewardRule firstLevelRule = DsRewardRule.builder()
@@ -97,6 +114,12 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .effectiveTo(null)
                 .build();
         dsRewardRuleMapper.insert(secondLevelRule);
+        initSpecialInviteRewardRule(TEAM_LEADER_LEVEL3_NEAREST, "INVITE_REWARD_TEAM_LEADER_NEAREST_V1",
+                new BigDecimal("0.05"), null);
+        initSpecialInviteRewardRule(TEAM_LEADER_LEVEL3_UPPER, "INVITE_REWARD_TEAM_LEADER_UPPER_V1",
+                new BigDecimal("0.02"), null);
+        initSpecialInviteRewardRule(SHAREHOLDER_POOL, "INVITE_REWARD_SHAREHOLDER_POOL_V1",
+                new BigDecimal("0.10"), null);
     }
 
     private void initSecondLevelInviteRewardRule() {
@@ -131,6 +154,26 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .rewardRate(BigDecimal.ONE)
                 .dailyCapPoints(null)
                 .applicableInviterLevel(scopeCode)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .effectiveFrom(LocalDateTime.now())
+                .effectiveTo(null)
+                .build();
+        dsRewardRuleMapper.insert(rule);
+    }
+
+    private void initSpecialInviteRewardRule(String inviterLevel, String version, BigDecimal rewardRate, BigDecimal dailyCapPoints) {
+        DsRewardRule existed = dsRewardRuleMapper.selectFirstOne(
+                DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode(),
+                DsRewardRule::getApplicableInviterLevel, inviterLevel);
+        if (existed != null) {
+            return;
+        }
+        DsRewardRule rule = DsRewardRule.builder()
+                .ruleVersion(version)
+                .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .rewardRate(rewardRate)
+                .dailyCapPoints(dailyCapPoints)
+                .applicableInviterLevel(inviterLevel)
                 .status(CommonStatusEnum.ENABLE.getStatus())
                 .effectiveFrom(LocalDateTime.now())
                 .effectiveTo(null)

@@ -30,4 +30,6 @@ public class DsMembershipAccount extends TenantBaseDO {
     private String memberStatus;
     private LocalDateTime effectiveTime;
     private LocalDateTime expireTime;
+    private Integer teamLeader;
+    private Integer shareholder;
 }

@@ -8,5 +8,7 @@ public interface DsRewardRuleService {
 
     DsRewardRule getMembershipInviteRewardRuleByLevel(Integer relationLevel);
 
+    DsRewardRule getMembershipInviteRewardRuleByInviterLevel(String inviterLevel);
+
     void validatePointConsumeScope(String bizType);
 }

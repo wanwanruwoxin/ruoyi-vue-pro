@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS `ds_membership_account` (
   `member_status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'UNOPENED',
   `effective_time` datetime NULL DEFAULT NULL,
   `expire_time` datetime NULL DEFAULT NULL,
+  `team_leader` tinyint NOT NULL DEFAULT 0,
+  `shareholder` tinyint NOT NULL DEFAULT 0,
   `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
@@ -34,7 +36,8 @@ CREATE TABLE IF NOT EXISTS `ds_membership_account` (
   `tenant_id` bigint NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `uk_ds_membership_account_uid` (`uid`) USING BTREE,
-  KEY `idx_ds_membership_account_status` (`member_status`) USING BTREE
+  KEY `idx_ds_membership_account_status` (`member_status`) USING BTREE,
+  KEY `idx_ds_membership_account_shareholder_status` (`shareholder`, `member_status`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `ds_membership_order` (
@@ -113,6 +116,36 @@ SET @exists := (
 );
 SET @sql := IF(@exists = 0,
   'ALTER TABLE `ds_membership_account` ADD COLUMN `current_plan_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_membership_account'
+    AND COLUMN_NAME = 'team_leader'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_membership_account` ADD COLUMN `team_leader` tinyint NOT NULL DEFAULT 0 AFTER `expire_time`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_membership_account'
+    AND COLUMN_NAME = 'shareholder'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_membership_account` ADD COLUMN `shareholder` tinyint NOT NULL DEFAULT 0 AFTER `team_leader`',
   'SELECT 1'
 );
 PREPARE stmt FROM @sql;
