@@ -41,6 +41,10 @@ public class DsProductServiceImpl implements DsProductService {
         DsProduct product = new DsProduct();
         fillProductFields(product, reqVO);
         product.setShopId(shop.getId());
+        product.setSpecType(false);
+        product.setSalesCount(0);
+        product.setVirtualSalesCount(0);
+        product.setBrowseCount(0);
         product.setSaleStatus(0);
         dsProductMapper.insert(product);
         return product.getId();
@@ -143,24 +147,52 @@ public class DsProductServiceImpl implements DsProductService {
 
     private static void fillProductFields(DsProduct product, AppDsProductSaveReqVO reqVO) {
         product.setProductName(reqVO.getProductName());
+        product.setPicUrl(firstUrl(reqVO.getImageUrls()));
+        product.setSliderPicUrls(joinUrls(reqVO.getImageUrls()));
         product.setPriceAmount(reqVO.getPriceAmount());
         product.setStock(reqVO.getStock());
         product.setDetailDesc(reqVO.getDetailDesc());
         product.setSort(reqVO.getSort());
+        product.setSpecType(false);
         product.setImageUrls(joinUrls(reqVO.getImageUrls()));
         product.setVideoUrls(joinUrls(reqVO.getVideoUrls()));
     }
 
     private static void fillProductFields(DsProduct product, DsProductSaveReqVO reqVO) {
         product.setShopId(reqVO.getShopId());
+        product.setCategoryId(reqVO.getCategoryId());
         product.setProductName(reqVO.getProductName());
+        product.setKeyword(reqVO.getKeyword());
+        product.setIntroduction(reqVO.getIntroduction());
+        product.setPicUrl(reqVO.getPicUrl());
+        product.setSliderPicUrls(reqVO.getSliderPicUrls());
         product.setPriceAmount(reqVO.getPriceAmount());
+        product.setMarketPrice(reqVO.getMarketPrice());
+        product.setCostPrice(reqVO.getCostPrice());
         product.setStock(reqVO.getStock());
         product.setDetailDesc(reqVO.getDetailDesc());
         product.setSort(reqVO.getSort());
+        product.setSpecType(reqVO.getSpecType());
+        product.setGiveIntegral(reqVO.getGiveIntegral());
         product.setSaleStatus(reqVO.getSaleStatus());
         product.setImageUrls(reqVO.getImageUrls());
         product.setVideoUrls(reqVO.getVideoUrls());
+        if (product.getSalesCount() == null) {
+            product.setSalesCount(0);
+        }
+        if (product.getVirtualSalesCount() == null) {
+            product.setVirtualSalesCount(0);
+        }
+        if (product.getBrowseCount() == null) {
+            product.setBrowseCount(0);
+        }
+    }
+
+    private static String firstUrl(List<String> urls) {
+        if (CollUtil.isEmpty(urls)) {
+            return null;
+        }
+        return urls.stream().filter(StrUtil::isNotBlank).findFirst().orElse(null);
     }
 
     private static String joinUrls(List<String> urls) {

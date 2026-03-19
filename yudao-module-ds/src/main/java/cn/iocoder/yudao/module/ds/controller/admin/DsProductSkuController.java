@@ -6,7 +6,6 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsProductSkuMapper;
-import cn.iocoder.yudao.module.ds.service.DsProductSkuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +14,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.validation.annotation.Validated;
@@ -30,15 +30,24 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class DsProductSkuController {
 
     @Resource
-    private DsProductSkuService dsProductSkuService;
-    @Resource
     private DsProductSkuMapper dsProductSkuMapper;
 
     @GetMapping("/page")
     @Operation(summary = "SKU 分页")
-    public CommonResult<PageResult<DsProductSku>> getPage(PageParam pageParam) {
+    public CommonResult<PageResult<DsProductSku>> getPage(@Valid PageParam pageParam,
+                                                          @RequestParam(value = "spuId", required = false) Long spuId,
+                                                          @RequestParam(value = "barCode", required = false) String barCode) {
         return success(dsProductSkuMapper.selectPage(pageParam, new LambdaQueryWrapperX<DsProductSku>()
+                .eqIfPresent(DsProductSku::getSpuId, spuId)
+                .likeIfPresent(DsProductSku::getBarCode, barCode)
                 .orderByDesc(DsProductSku::getId)));
+    }
+
+    @GetMapping("/get")
+    @Operation(summary = "SKU 详情")
+    @Parameter(name = "id", required = true)
+    public CommonResult<DsProductSku> get(@RequestParam("id") Long id) {
+        return success(dsProductSkuMapper.selectById(id));
     }
 
     @PostMapping("/create")
@@ -47,6 +56,13 @@ public class DsProductSkuController {
         reqVO.setId(null);
         dsProductSkuMapper.insert(reqVO);
         return success(reqVO.getId());
+    }
+
+    @PutMapping("/update")
+    @Operation(summary = "更新 SKU")
+    public CommonResult<Boolean> update(@Valid @RequestBody DsProductSku reqVO) {
+        dsProductSkuMapper.updateById(reqVO);
+        return success(true);
     }
 
     @DeleteMapping("/delete")

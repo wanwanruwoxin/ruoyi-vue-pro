@@ -26,12 +26,24 @@ public class DsProduct extends TenantBaseDO {
     @TableId
     private Long id;
     private Long shopId;
+    private Long categoryId;
     private String productName;
+    private String keyword;
+    private String introduction;
+    private String picUrl;
+    private String sliderPicUrls;
     private BigDecimal priceAmount;
+    private BigDecimal marketPrice;
+    private BigDecimal costPrice;
     private Integer stock;
     private String detailDesc;
     private String imageUrls;
     private String videoUrls;
+    private Boolean specType;
+    private Integer giveIntegral;
     private Integer saleStatus;
     private Integer sort;
+    private Integer salesCount;
+    private Integer virtualSalesCount;
+    private Integer browseCount;
 }

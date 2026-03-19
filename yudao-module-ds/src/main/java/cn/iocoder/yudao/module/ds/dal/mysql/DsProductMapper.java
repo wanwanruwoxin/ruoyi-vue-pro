@@ -37,6 +37,7 @@ public interface DsProductMapper extends BaseMapperX<DsProduct> {
     default PageResult<DsProduct> selectAdminPage(DsProductPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DsProduct>()
                 .eqIfPresent(DsProduct::getShopId, reqVO.getShopId())
+                .eqIfPresent(DsProduct::getCategoryId, reqVO.getCategoryId())
                 .likeIfPresent(DsProduct::getProductName, reqVO.getProductName())
                 .eqIfPresent(DsProduct::getSaleStatus, reqVO.getSaleStatus())
                 .orderByAsc(DsProduct::getSort)

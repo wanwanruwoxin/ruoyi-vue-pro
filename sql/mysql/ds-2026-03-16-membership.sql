@@ -432,4 +432,470 @@ ON DUPLICATE KEY UPDATE
   `updater` = VALUES(`updater`),
   `tenant_id` = VALUES(`tenant_id`);
 
+CREATE TABLE IF NOT EXISTS `ds_product_category` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `parent_id` bigint NOT NULL DEFAULT 0,
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pic_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `sort` int NOT NULL DEFAULT 0,
+  `status` tinyint NOT NULL DEFAULT 0,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_ds_product_category_parent` (`parent_id`) USING BTREE,
+  KEY `idx_ds_product_category_status` (`status`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_product_property` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_ds_product_property_name` (`name`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_product_property_value` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `property_id` bigint NOT NULL,
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_ds_product_property_value_property` (`property_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_product_comment` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `user_nickname` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `user_avatar` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `anonymous` tinyint NOT NULL DEFAULT 0,
+  `order_id` bigint NULL DEFAULT NULL,
+  `order_item_id` bigint NULL DEFAULT NULL,
+  `spu_id` bigint NOT NULL,
+  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `sku_id` bigint NULL DEFAULT NULL,
+  `sku_pic_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `sku_properties_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `visible` tinyint NOT NULL DEFAULT 1,
+  `scores` tinyint NOT NULL DEFAULT 5,
+  `description_scores` tinyint NOT NULL DEFAULT 5,
+  `benefit_scores` tinyint NOT NULL DEFAULT 5,
+  `content` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `pic_urls` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `reply_status` tinyint NOT NULL DEFAULT 0,
+  `reply_user_id` bigint NULL DEFAULT NULL,
+  `reply_content` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `reply_time` datetime NULL DEFAULT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_ds_product_comment_spu` (`spu_id`) USING BTREE,
+  KEY `idx_ds_product_comment_user` (`user_id`) USING BTREE,
+  KEY `idx_ds_product_comment_visible` (`visible`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_product_sku` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `spu_id` bigint NOT NULL,
+  `properties_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `price_amount` decimal(10, 2) NOT NULL DEFAULT 0.01,
+  `market_price` decimal(10, 2) NULL DEFAULT NULL,
+  `cost_price` decimal(10, 2) NULL DEFAULT NULL,
+  `bar_code` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `pic_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `stock` int NOT NULL DEFAULT 0,
+  `weight` double NULL DEFAULT NULL,
+  `volume` double NULL DEFAULT NULL,
+  `sales_count` int NOT NULL DEFAULT 0,
+  `sale_time` datetime NULL DEFAULT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_ds_product_sku_spu` (`spu_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'category_id'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `category_id` bigint NULL DEFAULT NULL AFTER `shop_id`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'keyword'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `keyword` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `product_name`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'introduction'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `introduction` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `keyword`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'pic_url'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `pic_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `introduction`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'slider_pic_urls'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `slider_pic_urls` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `pic_url`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'market_price'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `market_price` decimal(10, 2) NULL DEFAULT NULL AFTER `price_amount`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'cost_price'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `cost_price` decimal(10, 2) NULL DEFAULT NULL AFTER `market_price`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'spec_type'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `spec_type` tinyint NOT NULL DEFAULT 0 AFTER `video_urls`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'give_integral'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `give_integral` int NOT NULL DEFAULT 0 AFTER `spec_type`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'sales_count'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `sales_count` int NOT NULL DEFAULT 0 AFTER `sort`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'virtual_sales_count'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `virtual_sales_count` int NOT NULL DEFAULT 0 AFTER `sales_count`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'browse_count'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `browse_count` int NOT NULL DEFAULT 0 AFTER `virtual_sales_count`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'spu_id'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `spu_id` bigint NOT NULL DEFAULT 0 AFTER `id`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'properties_json'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `properties_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `spu_id`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'price_amount'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `price_amount` decimal(10, 2) NOT NULL DEFAULT 0.01 AFTER `properties_json`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'market_price'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `market_price` decimal(10, 2) NULL DEFAULT NULL AFTER `price_amount`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'cost_price'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `cost_price` decimal(10, 2) NULL DEFAULT NULL AFTER `market_price`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'bar_code'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `bar_code` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `cost_price`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'pic_url'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `pic_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `bar_code`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'stock'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `stock` int NOT NULL DEFAULT 0 AFTER `pic_url`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'weight'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `weight` double NULL DEFAULT NULL AFTER `stock`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'volume'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `volume` double NULL DEFAULT NULL AFTER `weight`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'sales_count'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `sales_count` int NOT NULL DEFAULT 0 AFTER `volume`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'sale_time'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `sale_time` datetime NULL DEFAULT NULL AFTER `sales_count`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 SET FOREIGN_KEY_CHECKS = 1;

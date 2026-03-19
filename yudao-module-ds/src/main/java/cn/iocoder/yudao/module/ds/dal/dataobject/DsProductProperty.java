@@ -11,31 +11,18 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-@TableName("ds_product_sku")
-@KeySequence("ds_product_sku_seq")
+@TableName("ds_product_property")
+@KeySequence("ds_product_property_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DsProductSku extends TenantBaseDO {
+public class DsProductProperty extends TenantBaseDO {
 
     @TableId
     private Long id;
-    private Long spuId;
-    private String propertiesJson;
-    private BigDecimal priceAmount;
-    private BigDecimal marketPrice;
-    private BigDecimal costPrice;
-    private String barCode;
-    private String picUrl;
-    private Integer stock;
-    private Double weight;
-    private Double volume;
-    private Integer salesCount;
-    private LocalDateTime saleTime;
+    private String name;
+    private String remark;
 }

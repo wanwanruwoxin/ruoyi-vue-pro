@@ -15,6 +15,9 @@ public class DsProductPageReqVO extends PageParam {
     @Schema(description = "店铺编号", example = "1")
     private Long shopId;
 
+    @Schema(description = "分类编号", example = "1")
+    private Long categoryId;
+
     @Schema(description = "商品名称关键字", example = "代餐")
     private String productName;
 
