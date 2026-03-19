@@ -433,11 +433,12 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-INSERT INTO `ds_reward_rule` (`rule_version`, `trigger_event`, `reward_rate`, `daily_cap_points`, `applicable_inviter_level`, `status`, `effective_from`, `effective_to`, `creator`, `updater`, `tenant_id`)
-VALUES ('INVITE_REWARD_V1', 'MEMBERSHIP_ORDER_PAID_NORMAL', 0.5000, 300.00, 'ALL', 0, NOW(), NULL, '', '', 0),
-       ('SCOPE_MEMBERSHIP_V1', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'MEMBERSHIP_ORDER_PAY', 0, NOW(), NULL, '', '', 0),
-       ('SCOPE_SHOP_V1', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'SHOP_ORDER_PAY', 0, NOW(), NULL, '', '', 0)
+INSERT INTO `ds_reward_rule` (`rule_version`, `rule_description`, `trigger_event`, `reward_rate`, `daily_cap_points`, `applicable_inviter_level`, `status`, `effective_from`, `effective_to`, `creator`, `updater`, `tenant_id`)
+VALUES ('INVITE_REWARD_V1', '会员订单支付后，按订单金额的50%奖励给一级邀请人，日封顶300积分', 'MEMBERSHIP_ORDER_PAID_NORMAL', 0.5000, 300.00, 'ALL', 0, NOW(), NULL, '', '', 0),
+       ('SCOPE_MEMBERSHIP_V1', '积分消费范围限定为会员订单支付场景', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'MEMBERSHIP_ORDER_PAY', 0, NOW(), NULL, '', '', 0),
+       ('SCOPE_SHOP_V1', '积分消费范围限定为商城订单支付场景', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'SHOP_ORDER_PAY', 0, NOW(), NULL, '', '', 0)
 ON DUPLICATE KEY UPDATE
+  `rule_description` = VALUES(`rule_description`),
   `trigger_event` = VALUES(`trigger_event`),
   `reward_rate` = VALUES(`reward_rate`),
   `daily_cap_points` = VALUES(`daily_cap_points`),
@@ -447,6 +448,19 @@ ON DUPLICATE KEY UPDATE
   `effective_to` = VALUES(`effective_to`),
   `updater` = VALUES(`updater`),
   `tenant_id` = VALUES(`tenant_id`);
+
+UPDATE `ds_reward_rule`
+SET `rule_description` = CASE `rule_version`
+  WHEN 'INVITE_REWARD_V1' THEN '会员订单支付后，按订单金额的50%奖励给一级邀请人，日封顶300积分'
+  WHEN 'INVITE_REWARD_LEVEL2_V1' THEN '会员订单支付后，按订单金额的20%奖励给二级邀请人'
+  WHEN 'INVITE_REWARD_TEAM_LEADER_NEAREST_V1' THEN '会员订单支付后，按订单金额的5%奖励给最近团队长'
+  WHEN 'INVITE_REWARD_TEAM_LEADER_UPPER_V1' THEN '会员订单支付后，按订单金额的2%奖励给上级团队长'
+  WHEN 'INVITE_REWARD_SHAREHOLDER_POOL_V1' THEN '会员订单支付后，按订单金额的10%计入股东池'
+  WHEN 'SCOPE_MEMBERSHIP_V1' THEN '积分消费范围限定为会员订单支付场景'
+  WHEN 'SCOPE_SHOP_V1' THEN '积分消费范围限定为商城订单支付场景'
+  WHEN 'SCOPE_GIFT_V1' THEN '积分消费范围限定为积分转赠支出场景'
+  ELSE `rule_description`
+END;
 
 CREATE TABLE IF NOT EXISTS `ds_product_category` (
   `id` bigint NOT NULL AUTO_INCREMENT,

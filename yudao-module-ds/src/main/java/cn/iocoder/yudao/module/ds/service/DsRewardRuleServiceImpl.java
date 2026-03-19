@@ -94,6 +94,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         }
         DsRewardRule firstLevelRule = DsRewardRule.builder()
                 .ruleVersion("INVITE_REWARD_V1")
+                .ruleDescription("会员订单支付后，按订单金额的50%奖励给一级邀请人，日封顶300积分")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
                 .rewardRate(new BigDecimal("0.50"))
                 .dailyCapPoints(new BigDecimal("300"))
@@ -105,6 +106,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         dsRewardRuleMapper.insert(firstLevelRule);
         DsRewardRule secondLevelRule = DsRewardRule.builder()
                 .ruleVersion("INVITE_REWARD_LEVEL2_V1")
+                .ruleDescription("会员订单支付后，按订单金额的20%奖励给二级邀请人")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
                 .rewardRate(new BigDecimal("0.20"))
                 .dailyCapPoints(new BigDecimal("150"))
@@ -131,6 +133,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         }
         DsRewardRule rule = DsRewardRule.builder()
                 .ruleVersion("INVITE_REWARD_LEVEL2_V1")
+                .ruleDescription("会员订单支付后，按订单金额的20%奖励给二级邀请人")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
                 .rewardRate(new BigDecimal("0.20"))
                 .dailyCapPoints(new BigDecimal("150"))
@@ -150,6 +153,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         }
         DsRewardRule rule = DsRewardRule.builder()
                 .ruleVersion(version)
+                .ruleDescription(resolveConsumeScopeDescription(scopeCode))
                 .triggerEvent(POINT_CONSUME_SCOPE.getCode())
                 .rewardRate(BigDecimal.ONE)
                 .dailyCapPoints(null)
@@ -170,6 +174,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         }
         DsRewardRule rule = DsRewardRule.builder()
                 .ruleVersion(version)
+                .ruleDescription(resolveInviteRewardDescription(inviterLevel))
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
                 .rewardRate(rewardRate)
                 .dailyCapPoints(dailyCapPoints)
@@ -179,5 +184,31 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .effectiveTo(null)
                 .build();
         dsRewardRuleMapper.insert(rule);
+    }
+
+    private String resolveConsumeScopeDescription(String scopeCode) {
+        if (MEMBERSHIP_ORDER_PAY.getCode().equals(scopeCode)) {
+            return "积分消费范围限定为会员订单支付场景";
+        }
+        if (SHOP_ORDER_PAY.getCode().equals(scopeCode)) {
+            return "积分消费范围限定为商城订单支付场景";
+        }
+        if (POINT_GIFT_SEND.getCode().equals(scopeCode)) {
+            return "积分消费范围限定为积分转赠支出场景";
+        }
+        return "积分消费范围规则";
+    }
+
+    private String resolveInviteRewardDescription(String inviterLevel) {
+        if (TEAM_LEADER_LEVEL3_NEAREST.equals(inviterLevel)) {
+            return "会员订单支付后，按订单金额的5%奖励给最近团队长";
+        }
+        if (TEAM_LEADER_LEVEL3_UPPER.equals(inviterLevel)) {
+            return "会员订单支付后，按订单金额的2%奖励给上级团队长";
+        }
+        if (SHAREHOLDER_POOL.equals(inviterLevel)) {
+            return "会员订单支付后，按订单金额的10%计入股东池";
+        }
+        return "会员邀请奖励规则";
     }
 }
