@@ -24,6 +24,9 @@ public class DsProductSaveReqVO {
     @Schema(description = "分类编号", example = "12")
     private Long categoryId;
 
+    @Schema(description = "品牌编号", example = "1")
+    private Long brandId;
+
     @Schema(description = "商品名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "轻食代餐组合")
     @NotBlank(message = "商品名称不能为空")
     @Length(max = 64, message = "商品名称长度不能超过 64 位")
@@ -36,6 +39,9 @@ public class DsProductSaveReqVO {
     @Schema(description = "商品简介", example = "轻食套餐")
     @Length(max = 512, message = "商品简介长度不能超过 512 位")
     private String introduction;
+
+    @Schema(description = "商品详情", example = "<p>商品详情</p>")
+    private String description;
 
     @Schema(description = "商品封面图", example = "https://a.png")
     @Length(max = 512, message = "商品封面图长度不能超过 512 位")
@@ -75,9 +81,18 @@ public class DsProductSaveReqVO {
     @Schema(description = "规格类型：false 单规格，true 多规格", example = "false")
     private Boolean specType;
 
+    @Schema(description = "配送方式数组，逗号分隔", example = "1,2")
+    private String deliveryTypes;
+
+    @Schema(description = "物流模板编号", example = "1")
+    private Long deliveryTemplateId;
+
     @Schema(description = "赠送积分", example = "100")
     @Min(value = 0, message = "赠送积分不能小于 0")
     private Integer giveIntegral;
+
+    @Schema(description = "分销类型：false 默认，true 自定义", example = "false")
+    private Boolean subCommissionType;
 
     @Schema(description = "销售状态：0 下架，1 上架", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "销售状态不能为空")

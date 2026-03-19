@@ -1,11 +1,13 @@
 package cn.iocoder.yudao.module.ds.controller.admin;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
-import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuPageReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuRespVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuSaveReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
-import cn.iocoder.yudao.module.ds.dal.mysql.DsProductSkuMapper;
+import cn.iocoder.yudao.module.ds.service.DsProductSkuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,38 +32,33 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class DsProductSkuController {
 
     @Resource
-    private DsProductSkuMapper dsProductSkuMapper;
+    private DsProductSkuService dsProductSkuService;
 
     @GetMapping("/page")
     @Operation(summary = "SKU 分页")
-    public CommonResult<PageResult<DsProductSku>> getPage(@Valid PageParam pageParam,
-                                                          @RequestParam(value = "spuId", required = false) Long spuId,
-                                                          @RequestParam(value = "barCode", required = false) String barCode) {
-        return success(dsProductSkuMapper.selectPage(pageParam, new LambdaQueryWrapperX<DsProductSku>()
-                .eqIfPresent(DsProductSku::getSpuId, spuId)
-                .likeIfPresent(DsProductSku::getBarCode, barCode)
-                .orderByDesc(DsProductSku::getId)));
+    public CommonResult<PageResult<DsProductSkuRespVO>> getPage(@Valid DsProductSkuPageReqVO reqVO) {
+        PageResult<DsProductSku> pageResult = dsProductSkuService.getProductSkuPage(reqVO);
+        return success(BeanUtils.toBean(pageResult, DsProductSkuRespVO.class));
     }
 
     @GetMapping("/get")
     @Operation(summary = "SKU 详情")
     @Parameter(name = "id", required = true)
-    public CommonResult<DsProductSku> get(@RequestParam("id") Long id) {
-        return success(dsProductSkuMapper.selectById(id));
+    public CommonResult<DsProductSkuRespVO> get(@RequestParam("id") Long id) {
+        DsProductSku sku = dsProductSkuService.getProductSku(id);
+        return success(BeanUtils.toBean(sku, DsProductSkuRespVO.class));
     }
 
     @PostMapping("/create")
     @Operation(summary = "创建 SKU")
-    public CommonResult<Long> create(@Valid @RequestBody DsProductSku reqVO) {
-        reqVO.setId(null);
-        dsProductSkuMapper.insert(reqVO);
-        return success(reqVO.getId());
+    public CommonResult<Long> create(@Valid @RequestBody DsProductSkuSaveReqVO reqVO) {
+        return success(dsProductSkuService.createProductSku(reqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新 SKU")
-    public CommonResult<Boolean> update(@Valid @RequestBody DsProductSku reqVO) {
-        dsProductSkuMapper.updateById(reqVO);
+    public CommonResult<Boolean> update(@Valid @RequestBody DsProductSkuSaveReqVO reqVO) {
+        dsProductSkuService.updateProductSku(reqVO);
         return success(true);
     }
 
@@ -69,7 +66,7 @@ public class DsProductSkuController {
     @Operation(summary = "删除 SKU")
     @Parameter(name = "id", required = true)
     public CommonResult<Boolean> delete(@RequestParam("id") Long id) {
-        dsProductSkuMapper.deleteById(id);
+        dsProductSkuService.deleteProductSku(id);
         return success(true);
     }
 }

@@ -87,14 +87,31 @@ CREATE TABLE IF NOT EXISTS `ds_shop` (
 CREATE TABLE IF NOT EXISTS `ds_product` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `shop_id` bigint NOT NULL,
+  `category_id` bigint NULL DEFAULT NULL,
+  `brand_id` bigint NULL DEFAULT NULL,
   `product_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `keyword` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `introduction` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `pic_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `slider_pic_urls` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
   `price_amount` decimal(10, 2) NOT NULL,
+  `market_price` decimal(10, 2) NULL DEFAULT NULL,
+  `cost_price` decimal(10, 2) NULL DEFAULT NULL,
   `stock` int NOT NULL DEFAULT 0,
   `detail_desc` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `image_urls` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
   `video_urls` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `spec_type` tinyint NOT NULL DEFAULT 0,
+  `delivery_types` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `delivery_template_id` bigint NULL DEFAULT NULL,
+  `give_integral` int NOT NULL DEFAULT 0,
+  `sub_commission_type` tinyint NULL DEFAULT NULL,
   `sale_status` tinyint NOT NULL DEFAULT 0,
   `sort` int NOT NULL DEFAULT 0,
+  `sales_count` int NOT NULL DEFAULT 0,
+  `virtual_sales_count` int NOT NULL DEFAULT 0,
+  `browse_count` int NOT NULL DEFAULT 0,
   `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
@@ -547,6 +564,7 @@ CREATE TABLE IF NOT EXISTS `ds_product_comment` (
 CREATE TABLE IF NOT EXISTS `ds_product_sku` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `spu_id` bigint NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `properties_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
   `price_amount` decimal(10, 2) NOT NULL DEFAULT 0.01,
   `market_price` decimal(10, 2) NULL DEFAULT NULL,
@@ -556,6 +574,8 @@ CREATE TABLE IF NOT EXISTS `ds_product_sku` (
   `stock` int NOT NULL DEFAULT 0,
   `weight` double NULL DEFAULT NULL,
   `volume` double NULL DEFAULT NULL,
+  `first_brokerage_price` int NOT NULL DEFAULT 0,
+  `second_brokerage_price` int NOT NULL DEFAULT 0,
   `sales_count` int NOT NULL DEFAULT 0,
   `sale_time` datetime NULL DEFAULT NULL,
   `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
@@ -922,6 +942,126 @@ SET @exists := (
 );
 SET @sql := IF(@exists = 0,
   'ALTER TABLE `ds_product_sku` ADD COLUMN `sale_time` datetime NULL DEFAULT NULL AFTER `sales_count`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'brand_id'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `brand_id` bigint NULL DEFAULT NULL AFTER `category_id`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'description'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `introduction`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'delivery_types'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `delivery_types` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '''' AFTER `spec_type`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'delivery_template_id'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `delivery_template_id` bigint NULL DEFAULT NULL AFTER `delivery_types`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product'
+    AND COLUMN_NAME = 'sub_commission_type'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product` ADD COLUMN `sub_commission_type` tinyint NULL DEFAULT NULL AFTER `give_integral`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'name'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `spu_id`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'first_brokerage_price'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `first_brokerage_price` int NOT NULL DEFAULT 0 AFTER `volume`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_product_sku'
+    AND COLUMN_NAME = 'second_brokerage_price'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_product_sku` ADD COLUMN `second_brokerage_price` int NOT NULL DEFAULT 0 AFTER `first_brokerage_price`',
   'SELECT 1'
 );
 PREPARE stmt FROM @sql;

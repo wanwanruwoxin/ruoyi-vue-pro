@@ -151,6 +151,7 @@ public class DsProductServiceImpl implements DsProductService {
         product.setSliderPicUrls(joinUrls(reqVO.getImageUrls()));
         product.setPriceAmount(reqVO.getPriceAmount());
         product.setStock(reqVO.getStock());
+        product.setDescription(reqVO.getDetailDesc());
         product.setDetailDesc(reqVO.getDetailDesc());
         product.setSort(reqVO.getSort());
         product.setSpecType(false);
@@ -164,6 +165,7 @@ public class DsProductServiceImpl implements DsProductService {
         product.setProductName(reqVO.getProductName());
         product.setKeyword(reqVO.getKeyword());
         product.setIntroduction(reqVO.getIntroduction());
+        product.setDescription(reqVO.getDescription());
         product.setPicUrl(reqVO.getPicUrl());
         product.setSliderPicUrls(reqVO.getSliderPicUrls());
         product.setPriceAmount(reqVO.getPriceAmount());
@@ -173,7 +175,11 @@ public class DsProductServiceImpl implements DsProductService {
         product.setDetailDesc(reqVO.getDetailDesc());
         product.setSort(reqVO.getSort());
         product.setSpecType(reqVO.getSpecType());
+        product.setBrandId(reqVO.getBrandId());
+        product.setDeliveryTypes(reqVO.getDeliveryTypes());
+        product.setDeliveryTemplateId(reqVO.getDeliveryTemplateId());
         product.setGiveIntegral(reqVO.getGiveIntegral());
+        product.setSubCommissionType(reqVO.getSubCommissionType());
         product.setSaleStatus(reqVO.getSaleStatus());
         product.setImageUrls(reqVO.getImageUrls());
         product.setVideoUrls(reqVO.getVideoUrls());

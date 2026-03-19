@@ -27,6 +27,7 @@ public class DsProductSku extends TenantBaseDO {
     @TableId
     private Long id;
     private Long spuId;
+    private String name;
     private String propertiesJson;
     private BigDecimal priceAmount;
     private BigDecimal marketPrice;
@@ -36,6 +37,8 @@ public class DsProductSku extends TenantBaseDO {
     private Integer stock;
     private Double weight;
     private Double volume;
+    private Integer firstBrokeragePrice;
+    private Integer secondBrokeragePrice;
     private Integer salesCount;
     private LocalDateTime saleTime;
 }

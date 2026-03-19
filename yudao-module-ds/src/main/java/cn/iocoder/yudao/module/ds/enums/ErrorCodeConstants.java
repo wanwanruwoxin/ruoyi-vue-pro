@@ -23,4 +23,5 @@ public interface ErrorCodeConstants {
     ErrorCode PRODUCT_NOT_EXISTS = new ErrorCode(1_060_000_016, "商品不存在");
     ErrorCode PRODUCT_ACCESS_DENIED = new ErrorCode(1_060_000_017, "无权操作该商品");
     ErrorCode PRODUCT_STATUS_ILLEGAL = new ErrorCode(1_060_000_018, "商品状态不合法");
+    ErrorCode PRODUCT_SKU_NOT_EXISTS = new ErrorCode(1_060_000_019, "商品 SKU 不存在");
 }

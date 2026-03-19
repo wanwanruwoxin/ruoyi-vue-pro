@@ -126,7 +126,7 @@ public class DsProductController {
         respVO.setProductName(product.getProductName());
         respVO.setPriceAmount(product.getPriceAmount());
         respVO.setStock(product.getStock());
-        respVO.setDetailDesc(product.getDetailDesc());
+        respVO.setDetailDesc(StrUtil.emptyToDefault(product.getDescription(), product.getDetailDesc()));
         respVO.setSaleStatus(product.getSaleStatus());
         respVO.setSort(product.getSort());
         respVO.setImageUrls(splitUrls(product.getImageUrls()));

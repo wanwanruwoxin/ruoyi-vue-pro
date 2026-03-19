@@ -27,9 +27,11 @@ public class DsProduct extends TenantBaseDO {
     private Long id;
     private Long shopId;
     private Long categoryId;
+    private Long brandId;
     private String productName;
     private String keyword;
     private String introduction;
+    private String description;
     private String picUrl;
     private String sliderPicUrls;
     private BigDecimal priceAmount;
@@ -40,7 +42,10 @@ public class DsProduct extends TenantBaseDO {
     private String imageUrls;
     private String videoUrls;
     private Boolean specType;
+    private String deliveryTypes;
+    private Long deliveryTemplateId;
     private Integer giveIntegral;
+    private Boolean subCommissionType;
     private Integer saleStatus;
     private Integer sort;
     private Integer salesCount;
