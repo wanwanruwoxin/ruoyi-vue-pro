@@ -1,9 +1,11 @@
 package cn.iocoder.yudao.module.ds.controller.admin;
 
 import cn.hutool.core.util.StrUtil;
+import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.excel.core.util.ExcelUtils;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsMyProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductSaveReqVO;
@@ -12,6 +14,7 @@ import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductRespVO;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuRespVO;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSaveReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductUpdateStatusReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import cn.iocoder.yudao.module.ds.service.DsProductService;
@@ -20,6 +23,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -35,8 +39,13 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import java.io.IOException;
+
+import static cn.iocoder.yudao.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
 import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 
 @Tag(name = "管理后台 - 电商商品")
@@ -119,6 +128,33 @@ public class DsProductController {
     public CommonResult<PageResult<DsProductRespVO>> getProductPage(@Valid DsProductPageReqVO reqVO) {
         PageResult<DsProduct> pageResult = dsProductService.getAdminProductPage(reqVO);
         return success(BeanUtils.toBean(pageResult, DsProductRespVO.class));
+    }
+
+    @PutMapping("/update-status")
+    @Operation(summary = "更新商品状态")
+    @PreAuthorize("@ss.hasPermission('ds:product:update')")
+    public CommonResult<Boolean> updateProductStatus(@Valid @RequestBody DsProductUpdateStatusReqVO reqVO) {
+        dsProductService.updateAdminProductStatus(reqVO.getId(), reqVO.getSaleStatus());
+        return success(true);
+    }
+
+    @GetMapping("/get-count")
+    @Operation(summary = "获得商品分页 tab count")
+    @PreAuthorize("@ss.hasPermission('ds:product:query')")
+    public CommonResult<Map<Integer, Long>> getProductCount() {
+        return success(dsProductService.getTabsCount());
+    }
+
+    @GetMapping("/export-excel")
+    @Operation(summary = "导出商品")
+    @PreAuthorize("@ss.hasPermission('ds:product:export')")
+    @ApiAccessLog(operateType = EXPORT)
+    public void exportProductList(@Validated DsProductPageReqVO reqVO,
+                                  HttpServletResponse response) throws IOException {
+        reqVO.setPageSize(PAGE_SIZE_NONE);
+        List<DsProduct> list = dsProductService.getAdminProductPage(reqVO).getList();
+        ExcelUtils.write(response, "商品列表.xls", "数据", DsProductRespVO.class,
+                BeanUtils.toBean(list, DsProductRespVO.class));
     }
 
     private static PageResult<AppDsProductRespVO> convertPage(PageResult<DsProduct> pageResult) {

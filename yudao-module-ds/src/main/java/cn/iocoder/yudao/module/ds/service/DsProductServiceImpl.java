@@ -22,7 +22,9 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -130,6 +132,30 @@ public class DsProductServiceImpl implements DsProductService {
     @Override
     public PageResult<DsProduct> getAdminProductPage(DsProductPageReqVO reqVO) {
         return dsProductMapper.selectAdminPage(reqVO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAdminProductStatus(Long id, Integer saleStatus) {
+        if (!Integer.valueOf(-1).equals(saleStatus)
+                && !Integer.valueOf(0).equals(saleStatus)
+                && !Integer.valueOf(1).equals(saleStatus)) {
+            throw exception(PRODUCT_STATUS_ILLEGAL);
+        }
+        DsProduct product = validateAdminProduct(id);
+        product.setSaleStatus(saleStatus);
+        dsProductMapper.updateById(product);
+    }
+
+    @Override
+    public Map<Integer, Long> getTabsCount() {
+        Map<Integer, Long> tabsCount = new HashMap<>();
+        tabsCount.put(DsProductPageReqVO.FOR_SALE, dsProductMapper.selectForSaleCount());
+        tabsCount.put(DsProductPageReqVO.IN_WAREHOUSE, dsProductMapper.selectInWarehouseCount());
+        tabsCount.put(DsProductPageReqVO.SOLD_OUT, dsProductMapper.selectSoldOutCount());
+        tabsCount.put(DsProductPageReqVO.ALERT_STOCK, dsProductMapper.selectAlertStockCount());
+        tabsCount.put(DsProductPageReqVO.RECYCLE_BIN, dsProductMapper.selectRecycleCount());
+        return tabsCount;
     }
 
     private DsProduct validateOwnerProduct(Long uid, Long productId) {

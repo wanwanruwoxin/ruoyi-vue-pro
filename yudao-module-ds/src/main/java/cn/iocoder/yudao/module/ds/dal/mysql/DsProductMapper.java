@@ -7,10 +7,13 @@ import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsMyProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductListReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
+import cn.hutool.core.util.ObjectUtil;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface DsProductMapper extends BaseMapperX<DsProduct> {
+
+    int ALERT_STOCK = 10;
 
     default PageResult<DsProduct> selectMyPage(Long shopId, AppDsMyProductPageReqVO reqVO) {
         LambdaQueryWrapperX<DsProduct> wrapper = new LambdaQueryWrapperX<DsProduct>();
@@ -35,13 +38,61 @@ public interface DsProductMapper extends BaseMapperX<DsProduct> {
     }
 
     default PageResult<DsProduct> selectAdminPage(DsProductPageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<DsProduct>()
-                .eqIfPresent(DsProduct::getShopId, reqVO.getShopId())
-                .eqIfPresent(DsProduct::getCategoryId, reqVO.getCategoryId())
-                .likeIfPresent(DsProduct::getProductName, reqVO.getProductName())
-                .eqIfPresent(DsProduct::getSaleStatus, reqVO.getSaleStatus())
-                .orderByAsc(DsProduct::getSort)
-                .orderByDesc(DsProduct::getId));
+        LambdaQueryWrapperX<DsProduct> queryWrapper = new LambdaQueryWrapperX<>();
+        queryWrapper.eqIfPresent(DsProduct::getShopId, reqVO.getShopId());
+        queryWrapper.eqIfPresent(DsProduct::getCategoryId, reqVO.getCategoryId());
+        queryWrapper.likeIfPresent(DsProduct::getProductName, reqVO.getProductName());
+        queryWrapper.eqIfPresent(DsProduct::getSaleStatus, reqVO.getSaleStatus());
+        queryWrapper.betweenIfPresent(DsProduct::getCreateTime, reqVO.getCreateTime());
+        queryWrapper.orderByAsc(DsProduct::getSort);
+        queryWrapper.orderByDesc(DsProduct::getId);
+        appendTabQuery(reqVO.getTabType(), queryWrapper);
+        return selectPage(reqVO, queryWrapper);
+    }
+
+    default Long selectAlertStockCount() {
+        return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .le(DsProduct::getStock, ALERT_STOCK)
+                .ne(DsProduct::getSaleStatus, -1));
+    }
+
+    default Long selectForSaleCount() {
+        return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eq(DsProduct::getSaleStatus, 1));
+    }
+
+    default Long selectInWarehouseCount() {
+        return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eq(DsProduct::getSaleStatus, 0));
+    }
+
+    default Long selectSoldOutCount() {
+        return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eq(DsProduct::getStock, 0)
+                .ne(DsProduct::getSaleStatus, -1));
+    }
+
+    default Long selectRecycleCount() {
+        return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eq(DsProduct::getSaleStatus, -1));
+    }
+
+    private static void appendTabQuery(Integer tabType, LambdaQueryWrapperX<DsProduct> queryWrapper) {
+        if (ObjectUtil.equals(DsProductPageReqVO.FOR_SALE, tabType)) {
+            queryWrapper.eq(DsProduct::getSaleStatus, 1);
+        }
+        if (ObjectUtil.equals(DsProductPageReqVO.IN_WAREHOUSE, tabType)) {
+            queryWrapper.eq(DsProduct::getSaleStatus, 0);
+        }
+        if (ObjectUtil.equals(DsProductPageReqVO.SOLD_OUT, tabType)) {
+            queryWrapper.eq(DsProduct::getStock, 0).ne(DsProduct::getSaleStatus, -1);
+        }
+        if (ObjectUtil.equals(DsProductPageReqVO.ALERT_STOCK, tabType)) {
+            queryWrapper.le(DsProduct::getStock, ALERT_STOCK).ne(DsProduct::getSaleStatus, -1);
+        }
+        if (ObjectUtil.equals(DsProductPageReqVO.RECYCLE_BIN, tabType)) {
+            queryWrapper.eq(DsProduct::getSaleStatus, -1);
+        }
     }
 
     private static void applySort(LambdaQueryWrapperX<DsProduct> wrapper, String sortType) {

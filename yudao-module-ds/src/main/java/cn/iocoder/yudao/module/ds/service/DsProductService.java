@@ -30,4 +30,8 @@ public interface DsProductService {
     DsProduct getAdminProduct(Long id);
 
     PageResult<DsProduct> getAdminProductPage(DsProductPageReqVO reqVO);
+
+    void updateAdminProductStatus(Long id, Integer saleStatus);
+
+    java.util.Map<Integer, Long> getTabsCount();
 }
