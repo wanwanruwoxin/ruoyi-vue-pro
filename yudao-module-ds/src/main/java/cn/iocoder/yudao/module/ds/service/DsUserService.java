@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.ds.service;
 
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.user.vo.DsUserUpdateReqVO;
 
 public interface DsUserService {
 
@@ -14,4 +15,6 @@ public interface DsUserService {
     AppDsAuthLoginRespVO refreshToken(String refreshToken);
 
     void logout(String accessToken);
+
+    boolean updateAdminUser(DsUserUpdateReqVO reqVO);
 }

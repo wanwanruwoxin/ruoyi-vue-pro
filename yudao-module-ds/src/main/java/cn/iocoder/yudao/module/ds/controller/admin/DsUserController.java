@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.ds.controller.admin.user.vo.DsUserUpdateReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
@@ -14,10 +15,13 @@ import cn.iocoder.yudao.module.ds.service.DsUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -68,6 +72,12 @@ public class DsUserController {
             return vo;
         }).toList();
         return success(new PageResult<>(result, userPage.getTotal()));
+    }
+
+    @PutMapping("/update")
+    @Operation(summary = "更新用户")
+    public CommonResult<Boolean> update(@Valid @RequestBody DsUserUpdateReqVO reqVO) {
+        return success(dsUserService.updateAdminUser(reqVO));
     }
 
     @Data

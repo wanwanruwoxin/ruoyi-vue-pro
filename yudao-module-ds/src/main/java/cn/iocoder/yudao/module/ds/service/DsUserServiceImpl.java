@@ -5,10 +5,15 @@ import cn.iocoder.yudao.framework.common.biz.system.oauth2.dto.OAuth2AccessToken
 import cn.iocoder.yudao.framework.common.biz.system.oauth2.dto.OAuth2AccessTokenRespDTO;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
+import cn.iocoder.yudao.module.ds.controller.admin.user.vo.DsUserUpdateReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipAccountMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsPointAccountMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserAddressMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import cn.iocoder.yudao.module.system.enums.oauth2.OAuth2ClientConstants;
@@ -19,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
+
+import java.math.BigDecimal;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.*;
@@ -38,6 +45,10 @@ public class DsUserServiceImpl implements DsUserService {
     private DsUserAddressMapper dsUserAddressMapper;
     @Resource
     private DsInviteRelationService dsInviteRelationService;
+    @Resource
+    private DsMembershipAccountMapper dsMembershipAccountMapper;
+    @Resource
+    private DsPointAccountMapper dsPointAccountMapper;
 //    @Resource
 //    private SmsCodeApi smsCodeApi;
 
@@ -111,6 +122,52 @@ public class DsUserServiceImpl implements DsUserService {
     @Override
     public void logout(String accessToken) {
         oauth2TokenApi.removeAccessToken(accessToken);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateAdminUser(DsUserUpdateReqVO reqVO) {
+        BigDecimal availablePoints = reqVO.getAvailablePoints() == null ? BigDecimal.ZERO : reqVO.getAvailablePoints();
+        DsUser user = dsUserMapper.selectById(reqVO.getId());
+        if (user == null) {
+            return false;
+        }
+        user.setNickname(reqVO.getNickname());
+        user.setAvatar(reqVO.getAvatar());
+        user.setStatus(reqVO.getStatus());
+        dsUserMapper.updateById(user);
+
+        DsMembershipAccount account = dsMembershipAccountMapper.selectByUid(reqVO.getId());
+        if (account == null) {
+            account = new DsMembershipAccount();
+            account.setUid(reqVO.getId());
+            account.setCurrentPlanCode(reqVO.getCurrentPlanCode());
+            account.setMemberStatus(reqVO.getMemberStatus());
+            account.setTeamLeader(reqVO.getTeamLeader());
+            account.setShareholder(reqVO.getShareholder());
+            dsMembershipAccountMapper.insert(account);
+        } else {
+            account.setCurrentPlanCode(reqVO.getCurrentPlanCode());
+            account.setMemberStatus(reqVO.getMemberStatus());
+            account.setTeamLeader(reqVO.getTeamLeader());
+            account.setShareholder(reqVO.getShareholder());
+            dsMembershipAccountMapper.updateById(account);
+        }
+
+        DsPointAccount pointAccount = dsPointAccountMapper.selectByUid(reqVO.getId());
+        if (pointAccount == null) {
+            pointAccount = new DsPointAccount();
+            pointAccount.setUid(reqVO.getId());
+            pointAccount.setAvailablePoints(availablePoints);
+            pointAccount.setFrozenPoints(BigDecimal.ZERO);
+            pointAccount.setTotalEarnedPoints(availablePoints);
+            pointAccount.setTotalSpentPoints(BigDecimal.ZERO);
+            dsPointAccountMapper.insert(pointAccount);
+        } else {
+            pointAccount.setAvailablePoints(availablePoints);
+            dsPointAccountMapper.updateById(pointAccount);
+        }
+        return true;
     }
 
     private AppDsAuthLoginRespVO buildLoginResp(OAuth2AccessTokenRespDTO token) {
