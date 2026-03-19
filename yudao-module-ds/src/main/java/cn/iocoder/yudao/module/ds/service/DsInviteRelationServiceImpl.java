@@ -25,7 +25,6 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
 
     private static final String INVITE_LINK_TEMPLATE = "/ds/invite/register?inviterId=%d";
     private static final int DIRECT_LEVEL = 1;
-    private static final int SECOND_LEVEL = 2;
 
     @Resource
     private DsInviteRelationMapper dsInviteRelationMapper;
@@ -67,10 +66,16 @@ public class DsInviteRelationServiceImpl implements DsInviteRelationService {
             throw exception(INVITE_RELATION_EXISTS);
         }
         validateNoInviteLoop(inviterId, inviteeId);
-        createRelationIfAbsent(inviterId, inviteeId, DIRECT_LEVEL);
-        DsInviteRelation parentRelation = dsInviteRelationMapper.selectByInviteeIdAndLevel(inviterId, DIRECT_LEVEL);
-        if (parentRelation != null && !inviteeId.equals(parentRelation.getInviterId())) {
-            createRelationIfAbsent(parentRelation.getInviterId(), inviteeId, SECOND_LEVEL);
+        Long currentInviterId = inviterId;
+        int currentLevel = DIRECT_LEVEL;
+        while (currentInviterId != null) {
+            if (inviteeId.equals(currentInviterId)) {
+                break;
+            }
+            createRelationIfAbsent(currentInviterId, inviteeId, currentLevel);
+            DsInviteRelation parentRelation = dsInviteRelationMapper.selectByInviteeIdAndLevel(currentInviterId, DIRECT_LEVEL);
+            currentInviterId = parentRelation == null ? null : parentRelation.getInviterId();
+            currentLevel++;
         }
     }
 

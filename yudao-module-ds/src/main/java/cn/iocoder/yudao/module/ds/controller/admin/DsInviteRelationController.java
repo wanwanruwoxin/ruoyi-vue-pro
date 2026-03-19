@@ -8,7 +8,6 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsInviteRelation;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsInviteRelationMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
-import cn.iocoder.yudao.module.ds.service.DsInviteRelationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -34,8 +33,6 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class DsInviteRelationController {
 
     @Resource
-    private DsInviteRelationService dsInviteRelationService;
-    @Resource
     private DsInviteRelationMapper dsInviteRelationMapper;
     @Resource
     private DsUserMapper dsUserMapper;
@@ -46,26 +43,34 @@ public class DsInviteRelationController {
                                                                           @RequestParam(value = "inviterId", required = false) Long inviterId,
                                                                           @RequestParam(value = "inviteeId", required = false) Long inviteeId,
                                                                           @RequestParam(value = "level", required = false) Integer level,
+                                                                          @RequestParam(value = "levelMin", required = false) Integer levelMin,
+                                                                          @RequestParam(value = "levelMax", required = false) Integer levelMax,
                                                                           @RequestParam(value = "bindStatus", required = false) Integer bindStatus) {
         PageResult<DsInviteRelation> relationPage = dsInviteRelationMapper.selectPage(pageParam, new LambdaQueryWrapperX<DsInviteRelation>()
                 .eqIfPresent(DsInviteRelation::getInviterId, inviterId)
                 .eqIfPresent(DsInviteRelation::getInviteeId, inviteeId)
                 .eqIfPresent(DsInviteRelation::getLevel, level)
+                .geIfPresent(DsInviteRelation::getLevel, levelMin)
+                .leIfPresent(DsInviteRelation::getLevel, levelMax)
                 .eqIfPresent(DsInviteRelation::getBindStatus, bindStatus)
                 .orderByDesc(DsInviteRelation::getId));
         Set<Long> userIds = relationPage.getList().stream()
                 .flatMap(item -> Stream.of(item.getInviterId(), item.getInviteeId()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<Long, String> userMobileMap = userIds.isEmpty() ? Map.of() : dsUserMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(DsUser::getId, DsUser::getMobile, (left, right) -> left));
+        Map<Long, DsUser> userMap = userIds.isEmpty() ? Map.of() : dsUserMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(DsUser::getId, user -> user, (left, right) -> left));
         return success(new PageResult<>(relationPage.getList().stream().map(item -> {
             DsInviteRelationAdminRespVO vo = new DsInviteRelationAdminRespVO();
             vo.setId(item.getId());
             vo.setInviterId(item.getInviterId());
             vo.setInviteeId(item.getInviteeId());
-            vo.setInviterMobile(userMobileMap.get(item.getInviterId()));
-            vo.setInviteeMobile(userMobileMap.get(item.getInviteeId()));
+            DsUser inviter = userMap.get(item.getInviterId());
+            vo.setInviterMobile(inviter == null ? null : inviter.getMobile());
+            vo.setInviterNickname(inviter == null ? null : inviter.getNickname());
+            DsUser invitee = userMap.get(item.getInviteeId());
+            vo.setInviteeMobile(invitee == null ? null : invitee.getMobile());
+            vo.setInviteeNickname(invitee == null ? null : invitee.getNickname());
             vo.setLevel(item.getLevel());
             vo.setSourceQrCode(item.getSourceQrCode());
             vo.setBindStatus(item.getBindStatus());
@@ -81,7 +86,9 @@ public class DsInviteRelationController {
         private Long inviterId;
         private Long inviteeId;
         private String inviterMobile;
+        private String inviterNickname;
         private String inviteeMobile;
+        private String inviteeNickname;
         private Integer level;
         private String sourceQrCode;
         private Integer bindStatus;
