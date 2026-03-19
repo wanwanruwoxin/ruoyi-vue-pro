@@ -264,6 +264,7 @@ CREATE TABLE IF NOT EXISTS `ds_point_ledger` (
 CREATE TABLE IF NOT EXISTS `ds_reward_rule` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `rule_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rule_description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `trigger_event` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `reward_rate` decimal(10, 4) NOT NULL DEFAULT 0.0000,
   `daily_cap_points` decimal(12, 2) NULL DEFAULT NULL,
@@ -281,6 +282,21 @@ CREATE TABLE IF NOT EXISTS `ds_reward_rule` (
   UNIQUE KEY `uk_ds_reward_rule_version` (`rule_version`) USING BTREE,
   KEY `idx_ds_reward_rule_trigger_status` (`trigger_event`, `status`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_reward_rule'
+    AND COLUMN_NAME = 'rule_description'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_reward_rule` ADD COLUMN `rule_description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `rule_version`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 SET @exists := (
   SELECT COUNT(*)

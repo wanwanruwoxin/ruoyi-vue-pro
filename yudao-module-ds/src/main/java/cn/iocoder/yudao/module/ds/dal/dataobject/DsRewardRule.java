@@ -27,6 +27,7 @@ public class DsRewardRule extends TenantBaseDO {
     @TableId
     private Long id;
     private String ruleVersion;
+    private String ruleDescription;
     private String triggerEvent;
     private BigDecimal rewardRate;
     private BigDecimal dailyCapPoints;
