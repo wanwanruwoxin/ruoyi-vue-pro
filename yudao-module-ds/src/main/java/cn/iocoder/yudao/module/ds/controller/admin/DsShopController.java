@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.ds.controller.admin;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.ds.controller.app.shop.vo.AppDsShopRespVO;
+import cn.iocoder.yudao.module.ds.controller.app.shop.vo.AppDsShopSaveReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopRespVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopSaveReqVO;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 
 @Tag(name = "管理后台 - 电商店铺")
 @RestController
@@ -40,6 +43,26 @@ public class DsShopController {
     @PreAuthorize("@ss.hasPermission('ds:shop:create')")
     public CommonResult<Long> createShop(@Valid @RequestBody DsShopSaveReqVO reqVO) {
         return success(dsShopService.createAdminShop(reqVO));
+    }
+
+    @PostMapping("/my")
+    @Operation(summary = "获取我的店铺")
+    public CommonResult<AppDsShopRespVO> getMyShop() {
+        DsShop shop = dsShopService.getShopByUid(getLoginUserId());
+        return success(convertShop(shop));
+    }
+
+    @PostMapping("/my/create")
+    @Operation(summary = "创建我的店铺")
+    public CommonResult<Long> createMyShop(@Valid @RequestBody AppDsShopSaveReqVO reqVO) {
+        return success(dsShopService.createShop(getLoginUserId(), reqVO));
+    }
+
+    @PostMapping("/my/update")
+    @Operation(summary = "更新我的店铺")
+    public CommonResult<Boolean> updateMyShop(@Valid @RequestBody AppDsShopSaveReqVO reqVO) {
+        dsShopService.updateShop(getLoginUserId(), reqVO);
+        return success(true);
     }
 
     @PutMapping("/update")
@@ -74,5 +97,23 @@ public class DsShopController {
     public CommonResult<PageResult<DsShopRespVO>> getShopPage(@Valid DsShopPageReqVO reqVO) {
         PageResult<DsShop> pageResult = dsShopService.getAdminShopPage(reqVO);
         return success(BeanUtils.toBean(pageResult, DsShopRespVO.class));
+    }
+
+    private static AppDsShopRespVO convertShop(DsShop shop) {
+        if (shop == null) {
+            return null;
+        }
+        AppDsShopRespVO respVO = new AppDsShopRespVO();
+        respVO.setId(shop.getId());
+        respVO.setUid(shop.getUid());
+        respVO.setShopName(shop.getShopName());
+        respVO.setAvatarUrl(shop.getAvatarUrl());
+        respVO.setIntro(shop.getIntro());
+        respVO.setContactMobile(shop.getContactMobile());
+        respVO.setShipProvince(shop.getShipProvince());
+        respVO.setShipCity(shop.getShipCity());
+        respVO.setShipDistrict(shop.getShipDistrict());
+        respVO.setShipDetailAddress(shop.getShipDetailAddress());
+        return respVO;
     }
 }

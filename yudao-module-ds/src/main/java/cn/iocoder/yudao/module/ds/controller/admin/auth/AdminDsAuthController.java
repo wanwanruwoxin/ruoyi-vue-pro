@@ -1,11 +1,13 @@
 package cn.iocoder.yudao.module.ds.controller.admin.auth;
 
 import cn.hutool.core.util.StrUtil;
+import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.config.SecurityProperties;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.ds.controller.admin.auth.vo.AdminDsAuthLoginReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
 import cn.iocoder.yudao.module.ds.service.DsUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,7 +40,14 @@ public class AdminDsAuthController {
     @Operation(summary = "手机号登录")
     @PermitAll
     public CommonResult<AppDsAuthLoginRespVO> login(@RequestBody @Valid AdminDsAuthLoginReqVO reqVO) {
-        return success(dsUserService.login(reqVO.getMobile(), reqVO.getPassword()));
+        return success(dsUserService.login(reqVO.getMobile(), reqVO.getPassword(), UserTypeEnum.ADMIN.getValue()));
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "用户注册")
+    @PermitAll
+    public CommonResult<Long> register(@RequestBody @Valid AppDsAuthRegisterReqVO reqVO) {
+        return success(dsUserService.register(reqVO));
     }
 
     @PostMapping("/logout")

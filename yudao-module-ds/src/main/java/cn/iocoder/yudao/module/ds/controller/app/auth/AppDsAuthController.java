@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.ds.controller.app.auth;
 
 import cn.hutool.core.util.StrUtil;
+import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.config.SecurityProperties;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
@@ -50,7 +51,7 @@ public class AppDsAuthController {
     @Operation(summary = "手机号登录")
     @PermitAll
     public CommonResult<AppDsAuthLoginRespVO> login(@RequestBody @Valid AppDsAuthLoginReqVO reqVO) {
-        return success(dsUserService.login(reqVO.getMobile(), reqVO.getPassword()));
+        return success(dsUserService.login(reqVO.getMobile(), reqVO.getPassword(), UserTypeEnum.MEMBER.getValue()));
     }
 
     @PostMapping("/logout")

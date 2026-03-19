@@ -87,7 +87,7 @@ public class DsUserServiceImpl implements DsUserService {
     }
 
     @Override
-    public AppDsAuthLoginRespVO login(String mobile, String password) {
+    public AppDsAuthLoginRespVO login(String mobile, String password, Integer userType) {
         DsUser dsUser = dsUserMapper.selectByMobile(mobile);
         if (dsUser == null || !passwordEncoder.matches(password, dsUser.getPassword())) {
             throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
@@ -97,7 +97,7 @@ public class DsUserServiceImpl implements DsUserService {
         }
         OAuth2AccessTokenRespDTO token = oauth2TokenApi.createAccessToken(new OAuth2AccessTokenCreateReqDTO()
                 .setUserId(dsUser.getId())
-                .setUserType(UserTypeEnum.MEMBER.getValue())
+                .setUserType(userType)
                 .setClientId(OAuth2ClientConstants.CLIENT_ID_DEFAULT));
         return buildLoginResp(token);
     }

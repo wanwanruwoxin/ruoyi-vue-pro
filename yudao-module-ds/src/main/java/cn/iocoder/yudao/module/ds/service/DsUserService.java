@@ -9,7 +9,7 @@ public interface DsUserService {
 
     Long register(AppDsAuthRegisterReqVO reqVO);
 
-    AppDsAuthLoginRespVO login(String mobile, String password);
+    AppDsAuthLoginRespVO login(String mobile, String password, Integer userType);
 
     AppDsAuthLoginRespVO refreshToken(String refreshToken);
 
