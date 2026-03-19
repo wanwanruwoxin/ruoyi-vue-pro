@@ -6,9 +6,11 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.ds.controller.admin.user.vo.DsUserUpdateReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipPlan;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipAccountMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipPlanMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsPointAccountMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import cn.iocoder.yudao.module.ds.service.DsUserService;
@@ -44,6 +46,8 @@ public class DsUserController {
     @Resource
     private DsMembershipAccountMapper dsMembershipAccountMapper;
     @Resource
+    private DsMembershipPlanMapper dsMembershipPlanMapper;
+    @Resource
     private DsPointAccountMapper dsPointAccountMapper;
 
     @GetMapping("/page")
@@ -63,6 +67,8 @@ public class DsUserController {
             DsMembershipAccount account = dsMembershipAccountMapper.selectByUid(user.getId());
             if (account != null) {
                 vo.setCurrentPlanCode(account.getCurrentPlanCode());
+                DsMembershipPlan plan = dsMembershipPlanMapper.selectByPlanCode(account.getCurrentPlanCode());
+                vo.setPlanName(plan == null ? null : plan.getPlanName());
                 vo.setMemberStatus(account.getMemberStatus());
                 vo.setTeamLeader(account.getTeamLeader());
                 vo.setShareholder(account.getShareholder());
@@ -90,6 +96,7 @@ public class DsUserController {
         private String registerChannel;
         private Integer status;
         private String currentPlanCode;
+        private String planName;
         private String memberStatus;
         private Integer teamLeader;
         private Integer shareholder;
