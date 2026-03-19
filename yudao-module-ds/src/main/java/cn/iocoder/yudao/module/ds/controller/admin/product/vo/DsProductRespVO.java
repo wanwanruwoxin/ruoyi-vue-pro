@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "管理后台 - DS 商品 Response VO")
 @Data
@@ -93,4 +94,7 @@ public class DsProductRespVO {
 
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime createTime;
+
+    @Schema(description = "SKU 列表")
+    private List<DsProductSkuRespVO> skus;
 }

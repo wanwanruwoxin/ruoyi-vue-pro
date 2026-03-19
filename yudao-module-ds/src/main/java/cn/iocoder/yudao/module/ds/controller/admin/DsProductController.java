@@ -10,9 +10,12 @@ import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductSaveReqV
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductStatusReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductRespVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuRespVO;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSaveReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import cn.iocoder.yudao.module.ds.service.DsProductService;
+import cn.iocoder.yudao.module.ds.service.DsProductSkuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,6 +47,8 @@ public class DsProductController {
 
     @Resource
     private DsProductService dsProductService;
+    @Resource
+    private DsProductSkuService dsProductSkuService;
 
     @PostMapping("/create")
     @Operation(summary = "创建商品")
@@ -102,7 +107,10 @@ public class DsProductController {
     @PreAuthorize("@ss.hasPermission('ds:product:query')")
     public CommonResult<DsProductRespVO> getProduct(@RequestParam("id") Long id) {
         DsProduct product = dsProductService.getAdminProduct(id);
-        return success(BeanUtils.toBean(product, DsProductRespVO.class));
+        List<DsProductSku> skus = dsProductSkuService.getProductSkuListBySpuId(id);
+        DsProductRespVO respVO = BeanUtils.toBean(product, DsProductRespVO.class);
+        respVO.setSkus(BeanUtils.toBean(skus, DsProductSkuRespVO.class));
+        return success(respVO);
     }
 
     @GetMapping("/page")

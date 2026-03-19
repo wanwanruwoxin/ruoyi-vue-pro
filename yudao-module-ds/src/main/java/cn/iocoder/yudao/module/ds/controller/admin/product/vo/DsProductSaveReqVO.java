@@ -9,6 +9,7 @@ import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Schema(description = "管理后台 - DS 商品新增/修改 Request VO")
 @Data
@@ -101,4 +102,7 @@ public class DsProductSaveReqVO {
     @Schema(description = "排序值，越小越靠前", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @NotNull(message = "排序值不能为空")
     private Integer sort;
+
+    @Schema(description = "SKU 数组")
+    private List<DsProductSkuSaveReqVO> skus;
 }

@@ -4,20 +4,26 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductPageReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuSaveReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSaveReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsMyProductPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductListReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.product.vo.AppDsProductSaveReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsProductMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsProductSkuMapper;
 import jakarta.validation.Valid;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_ACCESS_DENIED;
@@ -31,6 +37,8 @@ public class DsProductServiceImpl implements DsProductService {
 
     @Resource
     private DsProductMapper dsProductMapper;
+    @Resource
+    private DsProductSkuMapper dsProductSkuMapper;
     @Resource
     private DsShopService dsShopService;
 
@@ -87,7 +95,10 @@ public class DsProductServiceImpl implements DsProductService {
         dsShopService.validateShopById(reqVO.getShopId());
         DsProduct product = new DsProduct();
         fillProductFields(product, reqVO);
+        List<DsProductSku> skuList = buildSkuListFromReq(reqVO, product);
+        initProductFromSkus(product, skuList);
         dsProductMapper.insert(product);
+        syncProductSkus(product.getId(), skuList);
         return product.getId();
     }
 
@@ -97,13 +108,17 @@ public class DsProductServiceImpl implements DsProductService {
         DsProduct product = validateAdminProduct(reqVO.getId());
         dsShopService.validateShopById(reqVO.getShopId());
         fillProductFields(product, reqVO);
+        List<DsProductSku> skuList = buildSkuListFromReq(reqVO, product);
+        initProductFromSkus(product, skuList);
         dsProductMapper.updateById(product);
+        syncProductSkus(product.getId(), skuList);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteAdminProduct(Long id) {
         validateAdminProduct(id);
+        dsProductSkuMapper.delete(DsProductSku::getSpuId, id);
         dsProductMapper.deleteById(id);
     }
 
@@ -210,5 +225,86 @@ public class DsProductServiceImpl implements DsProductService {
             return null;
         }
         return StrUtil.join(",", filteredUrls);
+    }
+
+    private List<DsProductSku> buildSkuListFromReq(DsProductSaveReqVO reqVO, DsProduct product) {
+        if (CollUtil.isEmpty(reqVO.getSkus())) {
+            return List.of(buildDefaultSku(product));
+        }
+        return reqVO.getSkus().stream().map(item -> {
+            DsProductSku sku = new DsProductSku();
+            sku.setName(StrUtil.blankToDefault(item.getName(), product.getProductName()));
+            sku.setPropertiesJson(item.getPropertiesJson());
+            sku.setPriceAmount(item.getPriceAmount());
+            sku.setMarketPrice(item.getMarketPrice());
+            sku.setCostPrice(item.getCostPrice());
+            sku.setBarCode(item.getBarCode());
+            sku.setPicUrl(item.getPicUrl());
+            sku.setStock(item.getStock());
+            sku.setWeight(item.getWeight());
+            sku.setVolume(item.getVolume());
+            sku.setFirstBrokeragePrice(Objects.requireNonNullElse(item.getFirstBrokeragePrice(), 0));
+            sku.setSecondBrokeragePrice(Objects.requireNonNullElse(item.getSecondBrokeragePrice(), 0));
+            sku.setSalesCount(Objects.requireNonNullElse(item.getSalesCount(), 0));
+            sku.setSaleTime(item.getSaleTime());
+            return sku;
+        }).toList();
+    }
+
+    private DsProductSku buildDefaultSku(DsProduct product) {
+        DsProductSku sku = new DsProductSku();
+        sku.setName(product.getProductName());
+        sku.setPriceAmount(product.getPriceAmount());
+        sku.setMarketPrice(product.getMarketPrice());
+        sku.setCostPrice(product.getCostPrice());
+        sku.setPicUrl(product.getPicUrl());
+        sku.setStock(product.getStock());
+        sku.setFirstBrokeragePrice(0);
+        sku.setSecondBrokeragePrice(0);
+        sku.setSalesCount(0);
+        return sku;
+    }
+
+    private void initProductFromSkus(DsProduct product, List<DsProductSku> skus) {
+        product.setPriceAmount(skus.stream()
+                .map(DsProductSku::getPriceAmount)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(product.getPriceAmount()));
+        product.setMarketPrice(skus.stream()
+                .map(DsProductSku::getMarketPrice)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(product.getMarketPrice()));
+        product.setCostPrice(skus.stream()
+                .map(DsProductSku::getCostPrice)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(product.getCostPrice()));
+        int stock = skus.stream()
+                .map(DsProductSku::getStock)
+                .filter(Objects::nonNull)
+                .reduce(0, Integer::sum);
+        product.setStock(stock);
+        int salesCount = skus.stream()
+                .map(DsProductSku::getSalesCount)
+                .filter(Objects::nonNull)
+                .reduce(0, Integer::sum);
+        product.setSalesCount(salesCount);
+        if (product.getSpecType() == null) {
+            product.setSpecType(skus.size() > 1);
+        }
+        if (product.getPriceAmount() == null) {
+            product.setPriceAmount(BigDecimal.valueOf(0.01D));
+        }
+    }
+
+    private void syncProductSkus(Long spuId, List<DsProductSku> skus) {
+        dsProductSkuMapper.delete(DsProductSku::getSpuId, spuId);
+        skus.forEach(sku -> {
+            sku.setId(null);
+            sku.setSpuId(spuId);
+            dsProductSkuMapper.insert(sku);
+        });
     }
 }

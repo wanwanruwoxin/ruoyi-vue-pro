@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
+
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_SKU_NOT_EXISTS;
 
@@ -66,6 +68,11 @@ public class DsProductSkuServiceImpl implements DsProductSkuService {
     @Override
     public PageResult<DsProductSku> getProductSkuPage(DsProductSkuPageReqVO reqVO) {
         return dsProductSkuMapper.selectPage(reqVO);
+    }
+
+    @Override
+    public List<DsProductSku> getProductSkuListBySpuId(Long spuId) {
+        return dsProductSkuMapper.selectList(DsProductSku::getSpuId, spuId);
     }
 
     private DsProductSku validateProductSku(Long id) {

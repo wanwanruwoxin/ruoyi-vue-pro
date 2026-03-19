@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSkuSaveRe
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import jakarta.validation.Valid;
 
+import java.util.List;
+
 public interface DsProductSkuService {
 
     Long createProductSku(@Valid DsProductSkuSaveReqVO reqVO);
@@ -17,4 +19,6 @@ public interface DsProductSkuService {
     DsProductSku getProductSku(Long id);
 
     PageResult<DsProductSku> getProductSkuPage(DsProductSkuPageReqVO reqVO);
+
+    List<DsProductSku> getProductSkuListBySpuId(Long spuId);
 }
