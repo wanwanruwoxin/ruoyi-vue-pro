@@ -15,6 +15,12 @@ public class DsShopRespVO {
     @Schema(description = "用户编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "100")
     private Long uid;
 
+    @Schema(description = "用户名称", example = "张三")
+    private String userNickname;
+
+    @Schema(description = "用户手机号", example = "15601691300")
+    private String userMobile;
+
     @Schema(description = "店铺名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "星选商城官方店")
     private String shopName;
 

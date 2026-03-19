@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopRespVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopSaveReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import cn.iocoder.yudao.module.ds.service.DsShopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +28,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 
@@ -37,6 +44,8 @@ public class DsShopController {
 
     @Resource
     private DsShopService dsShopService;
+    @Resource
+    private DsUserMapper dsUserMapper;
 
     @PostMapping("/create")
     @Operation(summary = "创建店铺")
@@ -88,7 +97,9 @@ public class DsShopController {
     @PreAuthorize("@ss.hasPermission('ds:shop:query')")
     public CommonResult<DsShopRespVO> getShop(@RequestParam("id") Long id) {
         DsShop shop = dsShopService.getAdminShop(id);
-        return success(BeanUtils.toBean(shop, DsShopRespVO.class));
+        DsShopRespVO respVO = BeanUtils.toBean(shop, DsShopRespVO.class);
+        fillUserInfo(respVO);
+        return success(respVO);
     }
 
     @GetMapping("/page")
@@ -96,7 +107,37 @@ public class DsShopController {
     @PreAuthorize("@ss.hasPermission('ds:shop:query')")
     public CommonResult<PageResult<DsShopRespVO>> getShopPage(@Valid DsShopPageReqVO reqVO) {
         PageResult<DsShop> pageResult = dsShopService.getAdminShopPage(reqVO);
-        return success(BeanUtils.toBean(pageResult, DsShopRespVO.class));
+        PageResult<DsShopRespVO> respPageResult = BeanUtils.toBean(pageResult, DsShopRespVO.class);
+        fillUserInfo(respPageResult.getList());
+        return success(respPageResult);
+    }
+
+    private void fillUserInfo(DsShopRespVO shop) {
+        if (shop == null || shop.getUid() == null) {
+            return;
+        }
+        DsUser user = dsUserMapper.selectById(shop.getUid());
+        if (user == null) {
+            return;
+        }
+        shop.setUserNickname(user.getNickname());
+        shop.setUserMobile(user.getMobile());
+    }
+
+    private void fillUserInfo(List<DsShopRespVO> shopList) {
+        if (shopList == null || shopList.isEmpty()) {
+            return;
+        }
+        Set<Long> userIds = shopList.stream().map(DsShopRespVO::getUid).collect(Collectors.toSet());
+        List<DsUser> userList = dsUserMapper.selectList(DsUser::getId, userIds);
+        Map<Long, DsUser> userMap = userList.stream().collect(Collectors.toMap(DsUser::getId, user -> user));
+        shopList.forEach(shop -> {
+            DsUser user = userMap.get(shop.getUid());
+            if (user != null) {
+                shop.setUserNickname(user.getNickname());
+                shop.setUserMobile(user.getMobile());
+            }
+        });
     }
 
     private static AppDsShopRespVO convertShop(DsShop shop) {
