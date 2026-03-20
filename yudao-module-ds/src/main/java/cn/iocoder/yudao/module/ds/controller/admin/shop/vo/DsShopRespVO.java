@@ -57,6 +57,9 @@ public class DsShopRespVO {
     @Schema(description = "商家后台账号编号")
     private Long backendAdminUserId;
 
+    @Schema(description = "商家后台账号用户名")
+    private String backendAdminUsername;
+
     @Schema(description = "排序", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     private Integer sort;
 

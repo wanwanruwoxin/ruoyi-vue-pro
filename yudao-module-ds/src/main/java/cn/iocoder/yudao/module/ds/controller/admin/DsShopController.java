@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
 import cn.iocoder.yudao.module.ds.service.DsShopService;
+import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +49,8 @@ public class DsShopController {
     private DsShopService dsShopService;
     @Resource
     private DsUserMapper dsUserMapper;
+    @Resource
+    private AdminUserService adminUserService;
 
     @PostMapping("/create")
     @Operation(summary = "创建店铺")
@@ -131,11 +135,11 @@ public class DsShopController {
             return;
         }
         DsUser user = dsUserMapper.selectById(shop.getUid());
-        if (user == null) {
-            return;
+        if (user != null) {
+            shop.setUserNickname(user.getNickname());
+            shop.setUserMobile(user.getMobile());
         }
-        shop.setUserNickname(user.getNickname());
-        shop.setUserMobile(user.getMobile());
+        fillBackendAdminInfo(shop);
     }
 
     private void fillUserInfo(List<DsShopRespVO> shopList) {
@@ -145,13 +149,33 @@ public class DsShopController {
         Set<Long> userIds = shopList.stream().map(DsShopRespVO::getUid).collect(Collectors.toSet());
         List<DsUser> userList = dsUserMapper.selectList(DsUser::getId, userIds);
         Map<Long, DsUser> userMap = userList.stream().collect(Collectors.toMap(DsUser::getId, user -> user));
+        Set<Long> backendAdminUserIds = shopList.stream()
+                .map(DsShopRespVO::getBackendAdminUserId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, AdminUserDO> adminUserMap = adminUserService.getUserMap(backendAdminUserIds);
         shopList.forEach(shop -> {
             DsUser user = userMap.get(shop.getUid());
             if (user != null) {
                 shop.setUserNickname(user.getNickname());
                 shop.setUserMobile(user.getMobile());
             }
+            AdminUserDO adminUser = adminUserMap.get(shop.getBackendAdminUserId());
+            if (adminUser != null) {
+                shop.setBackendAdminUsername(adminUser.getUsername());
+            }
         });
+    }
+
+    private void fillBackendAdminInfo(DsShopRespVO shop) {
+        if (shop == null || shop.getBackendAdminUserId() == null) {
+            return;
+        }
+        AdminUserDO adminUser = adminUserService.getUser(shop.getBackendAdminUserId());
+        if (adminUser == null) {
+            return;
+        }
+        shop.setBackendAdminUsername(adminUser.getUsername());
     }
 
     private static AppDsShopRespVO convertShop(DsShop shop) {
