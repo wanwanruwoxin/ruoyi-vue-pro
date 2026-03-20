@@ -67,7 +67,6 @@ public class DsProductController {
 
     @PostMapping("/create")
     @Operation(summary = "创建商品")
-    @PreAuthorize("@ss.hasPermission('ds:product:create')")
     public CommonResult<Long> createProduct(@Valid @RequestBody DsProductSaveReqVO reqVO) {
         return success(dsProductService.createAdminProduct(reqVO));
     }
@@ -80,7 +79,6 @@ public class DsProductController {
 
     @PutMapping("/update")
     @Operation(summary = "更新商品")
-    @PreAuthorize("@ss.hasPermission('ds:product:update')")
     public CommonResult<Boolean> updateProduct(@Valid @RequestBody DsProductSaveReqVO reqVO) {
         dsProductService.updateAdminProduct(reqVO);
         return success(true);
@@ -118,7 +116,6 @@ public class DsProductController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除商品")
     @Parameter(name = "id", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('ds:product:delete')")
     public CommonResult<Boolean> deleteProduct(@RequestParam("id") Long id) {
         dsProductService.deleteAdminProduct(id);
         return success(true);
@@ -127,7 +124,6 @@ public class DsProductController {
     @GetMapping("/get")
     @Operation(summary = "获得商品详情")
     @Parameter(name = "id", required = true, example = "1")
-    @PreAuthorize("@ss.hasPermission('ds:product:query')")
     public CommonResult<DsProductRespVO> getProduct(@RequestParam("id") Long id) {
         DsProduct product = dsProductService.getAdminProduct(id);
         List<DsProductSku> skus = dsProductSkuService.getProductSkuListBySpuId(id);
@@ -138,7 +134,6 @@ public class DsProductController {
 
     @GetMapping("/page")
     @Operation(summary = "获得商品分页")
-    @PreAuthorize("@ss.hasPermission('ds:product:query')")
     public CommonResult<PageResult<DsProductRespVO>> getProductPage(@Valid DsProductPageReqVO reqVO) {
         PageResult<DsProduct> pageResult = dsProductService.getAdminProductPage(reqVO);
         return success(BeanUtils.toBean(pageResult, DsProductRespVO.class));
@@ -146,7 +141,6 @@ public class DsProductController {
 
     @PutMapping("/update-status")
     @Operation(summary = "更新商品状态")
-    @PreAuthorize("@ss.hasPermission('ds:product:update')")
     public CommonResult<Boolean> updateProductStatus(@Valid @RequestBody DsProductUpdateStatusReqVO reqVO) {
         dsProductService.updateAdminProductStatus(reqVO.getId(), reqVO.getSaleStatus());
         return success(true);
@@ -154,14 +148,12 @@ public class DsProductController {
 
     @GetMapping("/get-count")
     @Operation(summary = "获得商品分页 tab count")
-    @PreAuthorize("@ss.hasPermission('ds:product:query')")
     public CommonResult<Map<Integer, Long>> getProductCount() {
         return success(dsProductService.getTabsCount());
     }
 
     @GetMapping("/export-excel")
     @Operation(summary = "导出商品")
-    @PreAuthorize("@ss.hasPermission('ds:product:export')")
     @ApiAccessLog(operateType = EXPORT)
     public void exportProductList(@Validated DsProductPageReqVO reqVO,
                                   HttpServletResponse response) throws IOException {

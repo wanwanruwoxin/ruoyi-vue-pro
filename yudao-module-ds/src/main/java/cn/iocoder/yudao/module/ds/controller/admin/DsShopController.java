@@ -122,7 +122,6 @@ public class DsShopController {
 
     @GetMapping("/page")
     @Operation(summary = "获得店铺分页")
-    @PreAuthorize("@ss.hasPermission('ds:shop:query')")
     public CommonResult<PageResult<DsShopRespVO>> getShopPage(@Valid DsShopPageReqVO reqVO) {
         PageResult<DsShop> pageResult = dsShopService.getAdminShopPage(reqVO);
         PageResult<DsShopRespVO> respPageResult = BeanUtils.toBean(pageResult, DsShopRespVO.class);
