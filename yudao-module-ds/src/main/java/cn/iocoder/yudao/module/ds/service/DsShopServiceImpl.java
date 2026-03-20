@@ -36,6 +36,7 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.SHOP_STATUS_IL
 public class DsShopServiceImpl implements DsShopService {
 
     private static final String MERCHANT_ROLE_CODE = "ds_merchant";
+    private static final String SANSANSHENGHUO_ROLE_CODE = "sansanshenghuo";
 
     @Resource
     private DsShopMapper dsShopMapper;
@@ -170,7 +171,7 @@ public class DsShopServiceImpl implements DsShopService {
         if (shop.getBackendAdminUserId() != null) {
             AdminUserDO exists = adminUserService.getUser(shop.getBackendAdminUserId());
             if (exists != null) {
-                assignMerchantRoleIfPresent(exists.getId());
+                assignShopRolesIfPresent(exists.getId());
                 return exists.getId();
             }
         }
@@ -184,23 +185,28 @@ public class DsShopServiceImpl implements DsShopService {
             userSaveReqVO.setUsername(buildUsername(dsUser));
             userSaveReqVO.setNickname(StrUtil.blankToDefault(dsUser.getNickname(), "商家" + dsUser.getId()));
             userSaveReqVO.setMobile(dsUser.getMobile());
-            userSaveReqVO.setPassword(buildInitPassword(dsUser.getMobile()));
+            userSaveReqVO.setPassword("123456");
             Long adminUserId = adminUserService.createUser(userSaveReqVO);
-            assignMerchantRoleIfPresent(adminUserId);
+            assignShopRolesIfPresent(adminUserId);
             return adminUserId;
         }
-        assignMerchantRoleIfPresent(adminUser.getId());
+        assignShopRolesIfPresent(adminUser.getId());
         return adminUser.getId();
     }
 
-    private void assignMerchantRoleIfPresent(Long adminUserId) {
-        RoleDO merchantRole = roleMapper.selectByCode(MERCHANT_ROLE_CODE);
-        if (merchantRole == null) {
+    private void assignShopRolesIfPresent(Long adminUserId) {
+        Set<Long> roleIds = new HashSet<>(permissionService.getUserRoleIdListByUserId(adminUserId));
+        assignRoleIdIfPresent(roleIds, MERCHANT_ROLE_CODE);
+        assignRoleIdIfPresent(roleIds, SANSANSHENGHUO_ROLE_CODE);
+        permissionService.assignUserRole(adminUserId, roleIds);
+    }
+
+    private void assignRoleIdIfPresent(Set<Long> roleIds, String roleCode) {
+        RoleDO role = roleMapper.selectByCode(roleCode);
+        if (role == null) {
             return;
         }
-        Set<Long> roleIds = new HashSet<>(permissionService.getUserRoleIdListByUserId(adminUserId));
-        roleIds.add(merchantRole.getId());
-        permissionService.assignUserRole(adminUserId, roleIds);
+        roleIds.add(role.getId());
     }
 
     private String buildUsername(DsUser dsUser) {
@@ -216,11 +222,6 @@ public class DsShopServiceImpl implements DsShopService {
             username = "dsm" + dsUser.getId();
         }
         return username.length() > 30 ? username.substring(0, 30) : username;
-    }
-
-    private String buildInitPassword(String mobile) {
-        String suffix = mobile.length() >= 6 ? mobile.substring(mobile.length() - 6) : mobile;
-        return "Ds" + suffix + "Aa1";
     }
 
     private static void fillShopFields(DsShop shop, AppDsShopSaveReqVO reqVO) {
