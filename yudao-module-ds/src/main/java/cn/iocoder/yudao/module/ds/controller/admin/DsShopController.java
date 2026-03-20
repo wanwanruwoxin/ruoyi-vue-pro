@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopSaveReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
+import cn.iocoder.yudao.module.ds.service.DsMerchantScopeService;
 import cn.iocoder.yudao.module.ds.service.DsShopService;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
@@ -36,8 +37,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.SHOP_NOT_EXISTS;
 
 @Tag(name = "管理后台 - 电商店铺")
 @RestController
@@ -48,6 +51,8 @@ public class DsShopController {
     @Resource
     private DsShopService dsShopService;
     @Resource
+    private DsMerchantScopeService dsMerchantScopeService;
+    @Resource
     private DsUserMapper dsUserMapper;
     @Resource
     private AdminUserService adminUserService;
@@ -56,6 +61,7 @@ public class DsShopController {
     @Operation(summary = "创建店铺")
     @PreAuthorize("@ss.hasPermission('ds:shop:create')")
     public CommonResult<Long> createShop(@Valid @RequestBody DsShopSaveReqVO reqVO) {
+        forceMerchantUid(reqVO);
         return success(dsShopService.createAdminShop(reqVO));
     }
 
@@ -88,6 +94,8 @@ public class DsShopController {
     @Operation(summary = "更新店铺")
     @PreAuthorize("@ss.hasPermission('ds:shop:update')")
     public CommonResult<Boolean> updateShop(@Valid @RequestBody DsShopSaveReqVO reqVO) {
+        validateMerchantShopAccess(reqVO.getId());
+        forceMerchantUid(reqVO);
         dsShopService.updateAdminShop(reqVO);
         return success(true);
     }
@@ -105,6 +113,7 @@ public class DsShopController {
     @Parameter(name = "id", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('ds:shop:delete')")
     public CommonResult<Boolean> deleteShop(@RequestParam("id") Long id) {
+        validateMerchantShopAccess(id);
         dsShopService.deleteAdminShop(id);
         return success(true);
     }
@@ -114,6 +123,7 @@ public class DsShopController {
     @Parameter(name = "id", required = true, example = "1")
     @PreAuthorize("@ss.hasPermission('ds:shop:query')")
     public CommonResult<DsShopRespVO> getShop(@RequestParam("id") Long id) {
+        validateMerchantShopAccess(id);
         DsShop shop = dsShopService.getAdminShop(id);
         DsShopRespVO respVO = BeanUtils.toBean(shop, DsShopRespVO.class);
         fillUserInfo(respVO);
@@ -123,10 +133,23 @@ public class DsShopController {
     @GetMapping("/page")
     @Operation(summary = "获得店铺分页")
     public CommonResult<PageResult<DsShopRespVO>> getShopPage(@Valid DsShopPageReqVO reqVO) {
+        forceMerchantUid(reqVO);
         PageResult<DsShop> pageResult = dsShopService.getAdminShopPage(reqVO);
         PageResult<DsShopRespVO> respPageResult = BeanUtils.toBean(pageResult, DsShopRespVO.class);
         fillUserInfo(respPageResult.getList());
         return success(respPageResult);
+    }
+
+    @GetMapping("/merchant-scope")
+    @Operation(summary = "获得商家数据隔离范围")
+    public CommonResult<DsMerchantScopeRespVO> getMerchantScope() {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        DsMerchantScopeRespVO respVO = new DsMerchantScopeRespVO();
+        respVO.setCanFilterUid(scope.getCanFilterUid());
+        respVO.setDefaultUid(scope.getDefaultUid());
+        respVO.setCanFilterShopId(scope.getCanFilterShopId());
+        respVO.setDefaultShopId(scope.getDefaultShopId());
+        return success(respVO);
     }
 
     private void fillUserInfo(DsShopRespVO shop) {
@@ -195,5 +218,39 @@ public class DsShopController {
         respVO.setStatus(shop.getStatus());
         respVO.setAuditRemark(shop.getAuditRemark());
         return respVO;
+    }
+
+    private void forceMerchantUid(DsShopPageReqVO reqVO) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        if (Boolean.FALSE.equals(scope.getCanFilterUid())) {
+            reqVO.setUid(scope.getDefaultUid());
+        }
+    }
+
+    private void forceMerchantUid(DsShopSaveReqVO reqVO) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        if (Boolean.FALSE.equals(scope.getCanFilterUid())) {
+            reqVO.setUid(scope.getDefaultUid());
+        }
+    }
+
+    private void validateMerchantShopAccess(Long shopId) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        if (Boolean.TRUE.equals(scope.getCanFilterUid())) {
+            return;
+        }
+        DsShop shop = dsShopService.getAdminShop(shopId);
+        if (!scope.getDefaultUid().equals(shop.getUid())) {
+            throw exception(SHOP_NOT_EXISTS);
+        }
+    }
+
+    @lombok.Data
+    public static class DsMerchantScopeRespVO {
+
+        private Boolean canFilterUid;
+        private Long defaultUid;
+        private Boolean canFilterShopId;
+        private Long defaultShopId;
     }
 }

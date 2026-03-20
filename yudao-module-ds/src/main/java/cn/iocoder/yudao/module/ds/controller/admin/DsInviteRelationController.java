@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsInviteRelation;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsInviteRelationMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
+import cn.iocoder.yudao.module.ds.service.DsMerchantScopeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -36,6 +37,8 @@ public class DsInviteRelationController {
     private DsInviteRelationMapper dsInviteRelationMapper;
     @Resource
     private DsUserMapper dsUserMapper;
+    @Resource
+    private DsMerchantScopeService dsMerchantScopeService;
 
     @GetMapping("/page")
     @Operation(summary = "邀请关系列表")
@@ -46,8 +49,9 @@ public class DsInviteRelationController {
                                                                           @RequestParam(value = "levelMin", required = false) Integer levelMin,
                                                                           @RequestParam(value = "levelMax", required = false) Integer levelMax,
                                                                           @RequestParam(value = "bindStatus", required = false) Integer bindStatus) {
+        Long actualInviterId = resolveQueryInviterId(inviterId);
         PageResult<DsInviteRelation> relationPage = dsInviteRelationMapper.selectPage(pageParam, new LambdaQueryWrapperX<DsInviteRelation>()
-                .eqIfPresent(DsInviteRelation::getInviterId, inviterId)
+                .eqIfPresent(DsInviteRelation::getInviterId, actualInviterId)
                 .eqIfPresent(DsInviteRelation::getInviteeId, inviteeId)
                 .eqIfPresent(DsInviteRelation::getLevel, level)
                 .geIfPresent(DsInviteRelation::getLevel, levelMin)
@@ -77,6 +81,11 @@ public class DsInviteRelationController {
             vo.setCreateTime(item.getCreateTime());
             return vo;
         }).toList(), relationPage.getTotal()));
+    }
+
+    private Long resolveQueryInviterId(Long requestedInviterId) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        return scope.getCanFilterUid() ? requestedInviterId : scope.getDefaultUid();
     }
 
     @Data

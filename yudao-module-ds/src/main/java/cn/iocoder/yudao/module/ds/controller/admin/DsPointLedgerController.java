@@ -5,11 +5,10 @@ import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointLedger;
-import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsPointLedgerMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
-import cn.iocoder.yudao.module.ds.service.DsShopService;
+import cn.iocoder.yudao.module.ds.service.DsMerchantScopeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -30,8 +29,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
-
 @Tag(name = "管理后台 - 电商积分流水")
 @RestController
 @RequestMapping("/ds/point-ledger")
@@ -43,7 +40,7 @@ public class DsPointLedgerController {
     @Resource
     private DsUserMapper dsUserMapper;
     @Resource
-    private DsShopService dsShopService;
+    private DsMerchantScopeService dsMerchantScopeService;
 
     @GetMapping("/page")
     @Operation(summary = "积分流水分页")
@@ -86,24 +83,15 @@ public class DsPointLedgerController {
     @Operation(summary = "获得积分流水用户编号过滤范围")
     public CommonResult<DsPointLedgerUidFilterScopeRespVO> getUidFilterScope() {
         DsPointLedgerUidFilterScopeRespVO respVO = new DsPointLedgerUidFilterScopeRespVO();
-        Long merchantUid = resolveMerchantUid();
-        respVO.setCanFilterUid(merchantUid == null);
-        respVO.setDefaultUid(merchantUid);
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        respVO.setCanFilterUid(scope.getCanFilterUid());
+        respVO.setDefaultUid(scope.getDefaultUid());
         return success(respVO);
     }
 
     private Long resolveQueryUid(Long requestedUid) {
-        Long merchantUid = resolveMerchantUid();
-        return merchantUid != null ? merchantUid : requestedUid;
-    }
-
-    private Long resolveMerchantUid() {
-        Long loginUserId = getLoginUserId();
-        if (loginUserId == null) {
-            return null;
-        }
-        DsShop shop = dsShopService.getShopByBackendAdminUserId(loginUserId);
-        return shop != null ? shop.getUid() : null;
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        return scope.getCanFilterUid() ? requestedUid : scope.getDefaultUid();
     }
 
     @Data

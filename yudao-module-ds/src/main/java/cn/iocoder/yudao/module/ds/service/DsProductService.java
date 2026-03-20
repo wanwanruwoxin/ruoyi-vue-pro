@@ -33,5 +33,5 @@ public interface DsProductService {
 
     void updateAdminProductStatus(Long id, Integer saleStatus);
 
-    java.util.Map<Integer, Long> getTabsCount();
+    java.util.Map<Integer, Long> getTabsCount(Long shopId);
 }

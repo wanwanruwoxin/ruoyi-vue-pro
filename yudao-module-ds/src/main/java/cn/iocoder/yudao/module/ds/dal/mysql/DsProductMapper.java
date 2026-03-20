@@ -50,30 +50,35 @@ public interface DsProductMapper extends BaseMapperX<DsProduct> {
         return selectPage(reqVO, queryWrapper);
     }
 
-    default Long selectAlertStockCount() {
+    default Long selectAlertStockCount(Long shopId) {
         return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eqIfPresent(DsProduct::getShopId, shopId)
                 .le(DsProduct::getStock, ALERT_STOCK)
                 .ne(DsProduct::getSaleStatus, -1));
     }
 
-    default Long selectForSaleCount() {
+    default Long selectForSaleCount(Long shopId) {
         return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eqIfPresent(DsProduct::getShopId, shopId)
                 .eq(DsProduct::getSaleStatus, 1));
     }
 
-    default Long selectInWarehouseCount() {
+    default Long selectInWarehouseCount(Long shopId) {
         return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eqIfPresent(DsProduct::getShopId, shopId)
                 .eq(DsProduct::getSaleStatus, 0));
     }
 
-    default Long selectSoldOutCount() {
+    default Long selectSoldOutCount(Long shopId) {
         return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eqIfPresent(DsProduct::getShopId, shopId)
                 .eq(DsProduct::getStock, 0)
                 .ne(DsProduct::getSaleStatus, -1));
     }
 
-    default Long selectRecycleCount() {
+    default Long selectRecycleCount(Long shopId) {
         return selectCount(new LambdaQueryWrapperX<DsProduct>()
+                .eqIfPresent(DsProduct::getShopId, shopId)
                 .eq(DsProduct::getSaleStatus, -1));
     }
 

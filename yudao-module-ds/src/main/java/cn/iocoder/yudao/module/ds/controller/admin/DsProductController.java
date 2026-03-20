@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductUpdateSta
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
+import cn.iocoder.yudao.module.ds.service.DsMerchantScopeService;
 import cn.iocoder.yudao.module.ds.service.DsProductService;
 import cn.iocoder.yudao.module.ds.service.DsProductSkuService;
 import cn.iocoder.yudao.module.ds.service.DsShopService;
@@ -50,6 +51,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
 import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_ACCESS_DENIED;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.SHOP_NOT_EXISTS;
 
 @Tag(name = "管理后台 - 电商商品")
@@ -64,10 +66,13 @@ public class DsProductController {
     private DsProductSkuService dsProductSkuService;
     @Resource
     private DsShopService dsShopService;
+    @Resource
+    private DsMerchantScopeService dsMerchantScopeService;
 
     @PostMapping("/create")
     @Operation(summary = "创建商品")
     public CommonResult<Long> createProduct(@Valid @RequestBody DsProductSaveReqVO reqVO) {
+        forceMerchantShopId(reqVO);
         return success(dsProductService.createAdminProduct(reqVO));
     }
 
@@ -80,6 +85,8 @@ public class DsProductController {
     @PutMapping("/update")
     @Operation(summary = "更新商品")
     public CommonResult<Boolean> updateProduct(@Valid @RequestBody DsProductSaveReqVO reqVO) {
+        validateMerchantProductAccess(reqVO.getId());
+        forceMerchantShopId(reqVO);
         dsProductService.updateAdminProduct(reqVO);
         return success(true);
     }
@@ -117,6 +124,7 @@ public class DsProductController {
     @Operation(summary = "删除商品")
     @Parameter(name = "id", required = true, example = "1")
     public CommonResult<Boolean> deleteProduct(@RequestParam("id") Long id) {
+        validateMerchantProductAccess(id);
         dsProductService.deleteAdminProduct(id);
         return success(true);
     }
@@ -125,6 +133,7 @@ public class DsProductController {
     @Operation(summary = "获得商品详情")
     @Parameter(name = "id", required = true, example = "1")
     public CommonResult<DsProductRespVO> getProduct(@RequestParam("id") Long id) {
+        validateMerchantProductAccess(id);
         DsProduct product = dsProductService.getAdminProduct(id);
         List<DsProductSku> skus = dsProductSkuService.getProductSkuListBySpuId(id);
         DsProductRespVO respVO = BeanUtils.toBean(product, DsProductRespVO.class);
@@ -135,6 +144,7 @@ public class DsProductController {
     @GetMapping("/page")
     @Operation(summary = "获得商品分页")
     public CommonResult<PageResult<DsProductRespVO>> getProductPage(@Valid DsProductPageReqVO reqVO) {
+        forceMerchantShopId(reqVO);
         PageResult<DsProduct> pageResult = dsProductService.getAdminProductPage(reqVO);
         return success(BeanUtils.toBean(pageResult, DsProductRespVO.class));
     }
@@ -142,6 +152,7 @@ public class DsProductController {
     @PutMapping("/update-status")
     @Operation(summary = "更新商品状态")
     public CommonResult<Boolean> updateProductStatus(@Valid @RequestBody DsProductUpdateStatusReqVO reqVO) {
+        validateMerchantProductAccess(reqVO.getId());
         dsProductService.updateAdminProductStatus(reqVO.getId(), reqVO.getSaleStatus());
         return success(true);
     }
@@ -149,7 +160,9 @@ public class DsProductController {
     @GetMapping("/get-count")
     @Operation(summary = "获得商品分页 tab count")
     public CommonResult<Map<Integer, Long>> getProductCount() {
-        return success(dsProductService.getTabsCount());
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        Long shopId = Boolean.TRUE.equals(scope.getCanFilterShopId()) ? null : scope.getDefaultShopId();
+        return success(dsProductService.getTabsCount(shopId));
     }
 
     @GetMapping("/export-excel")
@@ -157,6 +170,7 @@ public class DsProductController {
     @ApiAccessLog(operateType = EXPORT)
     public void exportProductList(@Validated DsProductPageReqVO reqVO,
                                   HttpServletResponse response) throws IOException {
+        forceMerchantShopId(reqVO);
         reqVO.setPageSize(PAGE_SIZE_NONE);
         List<DsProduct> list = dsProductService.getAdminProductPage(reqVO).getList();
         ExcelUtils.write(response, "商品列表.xls", "数据", DsProductRespVO.class,
@@ -192,5 +206,30 @@ public class DsProductController {
                 .map(String::trim)
                 .filter(StrUtil::isNotBlank)
                 .toList();
+    }
+
+    private void forceMerchantShopId(DsProductSaveReqVO reqVO) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        if (Boolean.FALSE.equals(scope.getCanFilterShopId())) {
+            reqVO.setShopId(scope.getDefaultShopId());
+        }
+    }
+
+    private void forceMerchantShopId(DsProductPageReqVO reqVO) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        if (Boolean.FALSE.equals(scope.getCanFilterShopId())) {
+            reqVO.setShopId(scope.getDefaultShopId());
+        }
+    }
+
+    private void validateMerchantProductAccess(Long productId) {
+        DsMerchantScopeService.DsMerchantScope scope = dsMerchantScopeService.getCurrentScope();
+        if (Boolean.TRUE.equals(scope.getCanFilterShopId())) {
+            return;
+        }
+        DsProduct product = dsProductService.getAdminProduct(productId);
+        if (!scope.getDefaultShopId().equals(product.getShopId())) {
+            throw exception(PRODUCT_ACCESS_DENIED);
+        }
     }
 }

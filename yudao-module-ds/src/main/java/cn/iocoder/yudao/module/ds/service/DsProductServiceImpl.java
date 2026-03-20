@@ -150,13 +150,13 @@ public class DsProductServiceImpl implements DsProductService {
     }
 
     @Override
-    public Map<Integer, Long> getTabsCount() {
+    public Map<Integer, Long> getTabsCount(Long shopId) {
         Map<Integer, Long> tabsCount = new HashMap<>();
-        tabsCount.put(DsProductPageReqVO.FOR_SALE, dsProductMapper.selectForSaleCount());
-        tabsCount.put(DsProductPageReqVO.IN_WAREHOUSE, dsProductMapper.selectInWarehouseCount());
-        tabsCount.put(DsProductPageReqVO.SOLD_OUT, dsProductMapper.selectSoldOutCount());
-        tabsCount.put(DsProductPageReqVO.ALERT_STOCK, dsProductMapper.selectAlertStockCount());
-        tabsCount.put(DsProductPageReqVO.RECYCLE_BIN, dsProductMapper.selectRecycleCount());
+        tabsCount.put(DsProductPageReqVO.FOR_SALE, dsProductMapper.selectForSaleCount(shopId));
+        tabsCount.put(DsProductPageReqVO.IN_WAREHOUSE, dsProductMapper.selectInWarehouseCount(shopId));
+        tabsCount.put(DsProductPageReqVO.SOLD_OUT, dsProductMapper.selectSoldOutCount(shopId));
+        tabsCount.put(DsProductPageReqVO.ALERT_STOCK, dsProductMapper.selectAlertStockCount(shopId));
+        tabsCount.put(DsProductPageReqVO.RECYCLE_BIN, dsProductMapper.selectRecycleCount(shopId));
         return tabsCount;
     }
 
