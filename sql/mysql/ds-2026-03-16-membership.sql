@@ -72,6 +72,10 @@ CREATE TABLE IF NOT EXISTS `ds_shop` (
   `ship_city` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `ship_district` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `ship_detail_address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` tinyint NOT NULL DEFAULT 0,
+  `audit_remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `audit_admin_user_id` bigint NULL DEFAULT NULL,
+  `backend_admin_user_id` bigint NULL DEFAULT NULL,
   `sort` int NOT NULL DEFAULT 0,
   `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -133,6 +137,66 @@ SET @exists := (
 );
 SET @sql := IF(@exists = 0,
   'ALTER TABLE `ds_membership_account` ADD COLUMN `current_plan_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_shop'
+    AND COLUMN_NAME = 'status'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_shop` ADD COLUMN `status` tinyint NOT NULL DEFAULT 0 AFTER `ship_detail_address`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_shop'
+    AND COLUMN_NAME = 'audit_remark'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_shop` ADD COLUMN `audit_remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `status`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_shop'
+    AND COLUMN_NAME = 'audit_admin_user_id'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_shop` ADD COLUMN `audit_admin_user_id` bigint NULL DEFAULT NULL AFTER `audit_remark`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_shop'
+    AND COLUMN_NAME = 'backend_admin_user_id'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_shop` ADD COLUMN `backend_admin_user_id` bigint NULL DEFAULT NULL AFTER `audit_admin_user_id`',
   'SELECT 1'
 );
 PREPARE stmt FROM @sql;

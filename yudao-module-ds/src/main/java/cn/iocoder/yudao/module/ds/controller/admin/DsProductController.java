@@ -17,8 +17,10 @@ import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductSaveReqVO
 import cn.iocoder.yudao.module.ds.controller.admin.product.vo.DsProductUpdateStatusReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.service.DsProductService;
 import cn.iocoder.yudao.module.ds.service.DsProductSkuService;
+import cn.iocoder.yudao.module.ds.service.DsShopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,9 +46,11 @@ import java.util.Map;
 import java.io.IOException;
 
 import static cn.iocoder.yudao.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.framework.common.pojo.PageParam.PAGE_SIZE_NONE;
 import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.SHOP_NOT_EXISTS;
 
 @Tag(name = "管理后台 - 电商商品")
 @RestController
@@ -58,6 +62,8 @@ public class DsProductController {
     private DsProductService dsProductService;
     @Resource
     private DsProductSkuService dsProductSkuService;
+    @Resource
+    private DsShopService dsShopService;
 
     @PostMapping("/create")
     @Operation(summary = "创建商品")
@@ -69,7 +75,7 @@ public class DsProductController {
     @PostMapping("/my/create")
     @Operation(summary = "创建我的商品")
     public CommonResult<Long> createMyProduct(@Valid @RequestBody AppDsProductSaveReqVO reqVO) {
-        return success(dsProductService.createProduct(getLoginUserId(), reqVO));
+        return success(dsProductService.createProduct(getMyShopUid(), reqVO));
     }
 
     @PutMapping("/update")
@@ -83,22 +89,30 @@ public class DsProductController {
     @PostMapping("/my/update")
     @Operation(summary = "更新我的商品")
     public CommonResult<Boolean> updateMyProduct(@Valid @RequestBody AppDsProductSaveReqVO reqVO) {
-        dsProductService.updateProduct(getLoginUserId(), reqVO);
+        dsProductService.updateProduct(getMyShopUid(), reqVO);
         return success(true);
     }
 
     @PostMapping("/my/status")
     @Operation(summary = "更新我的商品上下架状态")
     public CommonResult<Boolean> updateMyProductStatus(@Valid @RequestBody AppDsProductStatusReqVO reqVO) {
-        dsProductService.updateProductStatus(getLoginUserId(), reqVO.getId(), reqVO.getSaleStatus());
+        dsProductService.updateProductStatus(getMyShopUid(), reqVO.getId(), reqVO.getSaleStatus());
         return success(true);
     }
 
     @PostMapping("/my-page")
     @Operation(summary = "获取我的商品分页")
     public CommonResult<PageResult<AppDsProductRespVO>> getMyProductPage(@Valid @RequestBody AppDsMyProductPageReqVO reqVO) {
-        PageResult<DsProduct> pageResult = dsProductService.getMyProductPage(getLoginUserId(), reqVO);
+        PageResult<DsProduct> pageResult = dsProductService.getMyProductPage(getMyShopUid(), reqVO);
         return success(convertPage(pageResult));
+    }
+
+    private Long getMyShopUid() {
+        DsShop shop = dsShopService.getShopByBackendAdminUserId(getLoginUserId());
+        if (shop == null) {
+            throw exception(SHOP_NOT_EXISTS);
+        }
+        return shop.getUid();
     }
 
     @DeleteMapping("/delete")

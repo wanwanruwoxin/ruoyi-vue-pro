@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductSku;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsProductMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsProductSkuMapper;
+import cn.iocoder.yudao.module.ds.enums.DsShopAuditStatusEnum;
 import jakarta.validation.Valid;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_ACCESS_DENIED;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_STATUS_ILLEGAL;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.SHOP_NOT_APPROVED;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.SHOP_NOT_EXISTS;
 
 @Service
@@ -174,6 +176,9 @@ public class DsProductServiceImpl implements DsProductService {
         DsShop shop = dsShopService.getShopByUid(uid);
         if (shop == null) {
             throw exception(SHOP_NOT_EXISTS);
+        }
+        if (!DsShopAuditStatusEnum.APPROVED.getStatus().equals(shop.getStatus())) {
+            throw exception(SHOP_NOT_APPROVED);
         }
         return shop;
     }

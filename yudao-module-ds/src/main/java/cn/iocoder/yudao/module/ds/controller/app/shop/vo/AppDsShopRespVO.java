@@ -36,4 +36,10 @@ public class AppDsShopRespVO {
 
     @Schema(description = "发货详细地址")
     private String shipDetailAddress;
+
+    @Schema(description = "店铺状态（0待审核 1审核通过 2审核拒绝）", example = "0")
+    private Integer status;
+
+    @Schema(description = "审核备注")
+    private String auditRemark;
 }

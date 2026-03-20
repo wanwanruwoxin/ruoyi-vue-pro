@@ -10,12 +10,15 @@ import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipAccountMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsPointAccountMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsShopMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserAddressMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
+import cn.iocoder.yudao.module.ds.enums.DsShopAuditStatusEnum;
 import cn.iocoder.yudao.module.system.enums.oauth2.OAuth2ClientConstants;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +52,8 @@ public class DsUserServiceImpl implements DsUserService {
     private DsMembershipAccountMapper dsMembershipAccountMapper;
     @Resource
     private DsPointAccountMapper dsPointAccountMapper;
+    @Resource
+    private DsShopMapper dsShopMapper;
 //    @Resource
 //    private SmsCodeApi smsCodeApi;
 
@@ -105,6 +110,12 @@ public class DsUserServiceImpl implements DsUserService {
         }
         if (CommonStatusEnum.isDisable(dsUser.getStatus())) {
             throw exception(AUTH_LOGIN_USER_DISABLED);
+        }
+        if (UserTypeEnum.ADMIN.getValue().equals(userType)) {
+            DsShop shop = dsShopMapper.selectByUid(dsUser.getId());
+            if (shop == null || !DsShopAuditStatusEnum.APPROVED.getStatus().equals(shop.getStatus())) {
+                throw exception(AUTH_ADMIN_NOT_OPENED);
+            }
         }
         OAuth2AccessTokenRespDTO token = oauth2TokenApi.createAccessToken(new OAuth2AccessTokenCreateReqDTO()
                 .setUserId(dsUser.getId())

@@ -32,5 +32,9 @@ public class DsShop extends TenantBaseDO {
     private String shipCity;
     private String shipDistrict;
     private String shipDetailAddress;
+    private Integer status;
+    private String auditRemark;
+    private Long auditAdminUserId;
+    private Long backendAdminUserId;
     private Integer sort;
 }

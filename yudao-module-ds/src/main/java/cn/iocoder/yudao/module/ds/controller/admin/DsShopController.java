@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.ds.controller.app.shop.vo.AppDsShopRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.shop.vo.AppDsShopSaveReqVO;
+import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopAuditReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopPageReqVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopRespVO;
 import cn.iocoder.yudao.module.ds.controller.admin.shop.vo.DsShopSaveReqVO;
@@ -57,7 +58,8 @@ public class DsShopController {
     @PostMapping("/my")
     @Operation(summary = "获取我的店铺")
     public CommonResult<AppDsShopRespVO> getMyShop() {
-        DsShop shop = dsShopService.getShopByUid(getLoginUserId());
+        Long loginUserId = getLoginUserId();
+        DsShop shop = dsShopService.getShopByBackendAdminUserId(loginUserId);
         return success(convertShop(shop));
     }
 
@@ -70,7 +72,11 @@ public class DsShopController {
     @PostMapping("/my/update")
     @Operation(summary = "更新我的店铺")
     public CommonResult<Boolean> updateMyShop(@Valid @RequestBody AppDsShopSaveReqVO reqVO) {
-        dsShopService.updateShop(getLoginUserId(), reqVO);
+        Long loginUserId = getLoginUserId();
+        DsShop shop = dsShopService.getShopByBackendAdminUserId(loginUserId);
+        if (shop != null) {
+            dsShopService.updateShop(shop.getUid(), reqVO);
+        }
         return success(true);
     }
 
@@ -81,6 +87,14 @@ public class DsShopController {
         dsShopService.updateAdminShop(reqVO);
         return success(true);
     }
+
+    @PutMapping("/audit")
+    @Operation(summary = "审核店铺")
+    @PreAuthorize("@ss.hasPermission('ds:shop:audit')")
+    public CommonResult<Boolean> auditShop(@Valid @RequestBody DsShopAuditReqVO reqVO) {
+        dsShopService.auditAdminShop(getLoginUserId(), reqVO);
+        return success(true);
+    } 
 
     @DeleteMapping("/delete")
     @Operation(summary = "删除店铺")
@@ -155,6 +169,8 @@ public class DsShopController {
         respVO.setShipCity(shop.getShipCity());
         respVO.setShipDistrict(shop.getShipDistrict());
         respVO.setShipDetailAddress(shop.getShipDetailAddress());
+        respVO.setStatus(shop.getStatus());
+        respVO.setAuditRemark(shop.getAuditRemark());
         return respVO;
     }
 }

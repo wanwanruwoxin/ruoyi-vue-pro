@@ -45,6 +45,18 @@ public class DsShopRespVO {
     @Schema(description = "发货详细地址", requiredMode = Schema.RequiredMode.REQUIRED, example = "世纪大道 100 号")
     private String shipDetailAddress;
 
+    @Schema(description = "店铺状态（0待审核 1审核通过 2审核拒绝）", example = "0")
+    private Integer status;
+
+    @Schema(description = "审核备注")
+    private String auditRemark;
+
+    @Schema(description = "审核管理员编号")
+    private Long auditAdminUserId;
+
+    @Schema(description = "商家后台账号编号")
+    private Long backendAdminUserId;
+
     @Schema(description = "排序", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     private Integer sort;
 

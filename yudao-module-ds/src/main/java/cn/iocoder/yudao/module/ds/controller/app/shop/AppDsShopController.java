@@ -30,7 +30,8 @@ public class AppDsShopController {
     @PostMapping("/my")
     @Operation(summary = "获取我的店铺")
     public CommonResult<AppDsShopRespVO> getMyShop() {
-        DsShop shop = dsShopService.getShopByUid(getLoginUserId());
+        Long loginUserId = getLoginUserId();
+        DsShop shop = dsShopService.getShopByUid(loginUserId);
         return success(convertShop(shop));
     }
 
@@ -43,7 +44,8 @@ public class AppDsShopController {
     @PostMapping("/update")
     @Operation(summary = "更新店铺")
     public CommonResult<Boolean> updateShop(@RequestBody @Valid AppDsShopSaveReqVO reqVO) {
-        dsShopService.updateShop(getLoginUserId(), reqVO);
+        Long loginUserId = getLoginUserId();
+        dsShopService.updateShop(loginUserId, reqVO);
         return success(true);
     }
 
@@ -62,6 +64,8 @@ public class AppDsShopController {
         respVO.setShipCity(shop.getShipCity());
         respVO.setShipDistrict(shop.getShipDistrict());
         respVO.setShipDetailAddress(shop.getShipDetailAddress());
+        respVO.setStatus(shop.getStatus());
+        respVO.setAuditRemark(shop.getAuditRemark());
         return respVO;
     }
 }

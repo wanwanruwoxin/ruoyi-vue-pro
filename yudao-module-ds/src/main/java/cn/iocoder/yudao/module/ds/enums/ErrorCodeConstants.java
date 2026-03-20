@@ -24,4 +24,8 @@ public interface ErrorCodeConstants {
     ErrorCode PRODUCT_ACCESS_DENIED = new ErrorCode(1_060_000_017, "无权操作该商品");
     ErrorCode PRODUCT_STATUS_ILLEGAL = new ErrorCode(1_060_000_018, "商品状态不合法");
     ErrorCode PRODUCT_SKU_NOT_EXISTS = new ErrorCode(1_060_000_019, "商品 SKU 不存在");
+    ErrorCode SHOP_STATUS_ILLEGAL = new ErrorCode(1_060_000_020, "店铺状态不合法");
+    ErrorCode SHOP_AUDIT_NOT_ALLOWED = new ErrorCode(1_060_000_021, "当前店铺状态不允许审核");
+    ErrorCode SHOP_NOT_APPROVED = new ErrorCode(1_060_000_022, "店铺未审核通过，无法操作");
+    ErrorCode AUTH_ADMIN_NOT_OPENED = new ErrorCode(1_060_000_023, "店铺审核通过后才可登录商家后台");
 }

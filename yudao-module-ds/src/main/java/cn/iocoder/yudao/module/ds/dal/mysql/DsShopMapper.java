@@ -14,11 +14,16 @@ public interface DsShopMapper extends BaseMapperX<DsShop> {
         return selectOne(DsShop::getUid, uid);
     }
 
+    default DsShop selectByBackendAdminUserId(Long backendAdminUserId) {
+        return selectOne(DsShop::getBackendAdminUserId, backendAdminUserId);
+    }
+
     default PageResult<DsShop> selectPage(DsShopPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DsShop>()
                 .eqIfPresent(DsShop::getUid, reqVO.getUid())
                 .likeIfPresent(DsShop::getShopName, reqVO.getShopName())
                 .likeIfPresent(DsShop::getContactMobile, reqVO.getContactMobile())
+                .eqIfPresent(DsShop::getStatus, reqVO.getStatus())
                 .orderByAsc(DsShop::getSort)
                 .orderByDesc(DsShop::getId));
     }

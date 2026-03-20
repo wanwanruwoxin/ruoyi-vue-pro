@@ -20,4 +20,7 @@ public class DsShopPageReqVO extends PageParam {
 
     @Schema(description = "联系方式", example = "15601691300")
     private String contactMobile;
+
+    @Schema(description = "店铺状态（0待审核 1审核通过 2审核拒绝）", example = "0")
+    private Integer status;
 }
