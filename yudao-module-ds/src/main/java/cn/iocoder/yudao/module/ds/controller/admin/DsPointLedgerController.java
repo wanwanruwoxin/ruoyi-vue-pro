@@ -5,9 +5,11 @@ import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointLedger;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsPointLedgerMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
+import cn.iocoder.yudao.module.ds.service.DsShopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -28,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 
 @Tag(name = "管理后台 - 电商积分流水")
 @RestController
@@ -39,6 +42,8 @@ public class DsPointLedgerController {
     private DsPointLedgerMapper dsPointLedgerMapper;
     @Resource
     private DsUserMapper dsUserMapper;
+    @Resource
+    private DsShopService dsShopService;
 
     @GetMapping("/page")
     @Operation(summary = "积分流水分页")
@@ -46,8 +51,9 @@ public class DsPointLedgerController {
                                                                        @RequestParam(value = "uid", required = false) Long uid,
                                                                        @RequestParam(value = "changeType", required = false) String changeType,
                                                                        @RequestParam(value = "bizType", required = false) String bizType) {
+        Long actualUid = resolveQueryUid(uid);
         PageResult<DsPointLedger> ledgerPage = dsPointLedgerMapper.selectPage(pageParam, new LambdaQueryWrapperX<DsPointLedger>()
-                .eqIfPresent(DsPointLedger::getUid, uid)
+                .eqIfPresent(DsPointLedger::getUid, actualUid)
                 .eqIfPresent(DsPointLedger::getChangeType, changeType)
                 .likeIfPresent(DsPointLedger::getBizType, bizType)
                 .orderByDesc(DsPointLedger::getId));
@@ -76,6 +82,30 @@ public class DsPointLedgerController {
         return success(new PageResult<>(result, ledgerPage.getTotal()));
     }
 
+    @GetMapping("/uid-filter-scope")
+    @Operation(summary = "获得积分流水用户编号过滤范围")
+    public CommonResult<DsPointLedgerUidFilterScopeRespVO> getUidFilterScope() {
+        DsPointLedgerUidFilterScopeRespVO respVO = new DsPointLedgerUidFilterScopeRespVO();
+        Long merchantUid = resolveMerchantUid();
+        respVO.setCanFilterUid(merchantUid == null);
+        respVO.setDefaultUid(merchantUid);
+        return success(respVO);
+    }
+
+    private Long resolveQueryUid(Long requestedUid) {
+        Long merchantUid = resolveMerchantUid();
+        return merchantUid != null ? merchantUid : requestedUid;
+    }
+
+    private Long resolveMerchantUid() {
+        Long loginUserId = getLoginUserId();
+        if (loginUserId == null) {
+            return null;
+        }
+        DsShop shop = dsShopService.getShopByBackendAdminUserId(loginUserId);
+        return shop != null ? shop.getUid() : null;
+    }
+
     @Data
     public static class DsPointLedgerAdminRespVO extends DsPointLedger {
 
@@ -83,5 +113,12 @@ public class DsPointLedgerController {
         private String userMobile;
         private String sourceUserNickname;
         private String sourceUserMobile;
+    }
+
+    @Data
+    public static class DsPointLedgerUidFilterScopeRespVO {
+
+        private Boolean canFilterUid;
+        private Long defaultUid;
     }
 }
