@@ -347,6 +347,7 @@ CREATE TABLE IF NOT EXISTS `ds_reward_rule` (
   `rule_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `rule_description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `trigger_event` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `applicable_plan_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `reward_rate` decimal(10, 4) NOT NULL DEFAULT 0.0000,
   `daily_cap_points` decimal(12, 2) NULL DEFAULT NULL,
   `applicable_inviter_level` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
@@ -373,6 +374,21 @@ SET @exists := (
 );
 SET @sql := IF(@exists = 0,
   'ALTER TABLE `ds_reward_rule` ADD COLUMN `rule_description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `rule_version`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'ds_reward_rule'
+    AND COLUMN_NAME = 'applicable_plan_code'
+);
+SET @sql := IF(@exists = 0,
+  'ALTER TABLE `ds_reward_rule` ADD COLUMN `applicable_plan_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL AFTER `trigger_event`',
   'SELECT 1'
 );
 PREPARE stmt FROM @sql;
@@ -514,13 +530,14 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-INSERT INTO `ds_reward_rule` (`rule_version`, `rule_description`, `trigger_event`, `reward_rate`, `daily_cap_points`, `applicable_inviter_level`, `status`, `effective_from`, `effective_to`, `creator`, `updater`, `tenant_id`)
-VALUES ('INVITE_REWARD_V1', '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分', 'MEMBERSHIP_ORDER_PAID_NORMAL', 0.5000, 300.00, 'LEVEL_1', 0, NOW(), NULL, '', '', 0),
-       ('SCOPE_MEMBERSHIP_V1', '积分消费范围限定为会员订单支付场景', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'MEMBERSHIP_ORDER_PAY', 0, NOW(), NULL, '', '', 0),
-       ('SCOPE_SHOP_V1', '积分消费范围限定为商城订单支付场景', 'POINT_CONSUME_SCOPE', 1.0000, NULL, 'SHOP_ORDER_PAY', 0, NOW(), NULL, '', '', 0)
+INSERT INTO `ds_reward_rule` (`rule_version`, `rule_description`, `trigger_event`, `applicable_plan_code`, `reward_rate`, `daily_cap_points`, `applicable_inviter_level`, `status`, `effective_from`, `effective_to`, `creator`, `updater`, `tenant_id`)
+VALUES ('INVITE_REWARD_V1', '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分', 'MEMBERSHIP_ORDER_PAID_NORMAL', 'ALL', 0.5000, 300.00, 'LEVEL_1', 0, NOW(), NULL, '', '', 0),
+       ('SCOPE_MEMBERSHIP_V1', '积分消费范围限定为会员订单支付场景', 'POINT_CONSUME_SCOPE', NULL, 1.0000, NULL, 'MEMBERSHIP_ORDER_PAY', 0, NOW(), NULL, '', '', 0),
+       ('SCOPE_SHOP_V1', '积分消费范围限定为商城订单支付场景', 'POINT_CONSUME_SCOPE', NULL, 1.0000, NULL, 'SHOP_ORDER_PAY', 0, NOW(), NULL, '', '', 0)
 ON DUPLICATE KEY UPDATE
   `rule_description` = VALUES(`rule_description`),
   `trigger_event` = VALUES(`trigger_event`),
+  `applicable_plan_code` = VALUES(`applicable_plan_code`),
   `reward_rate` = VALUES(`reward_rate`),
   `daily_cap_points` = VALUES(`daily_cap_points`),
   `applicable_inviter_level` = VALUES(`applicable_inviter_level`),
@@ -547,6 +564,17 @@ UPDATE `ds_reward_rule`
 SET `applicable_inviter_level` = 'LEVEL_1'
 WHERE `rule_version` = 'INVITE_REWARD_V1'
   AND (`applicable_inviter_level` IS NULL OR `applicable_inviter_level` <> 'LEVEL_1');
+
+UPDATE `ds_reward_rule`
+SET `applicable_plan_code` = CASE `rule_version`
+  WHEN 'INVITE_REWARD_V1' THEN 'ALL'
+  WHEN 'INVITE_REWARD_LEVEL2_V1' THEN 'ADVANCED'
+  WHEN 'INVITE_REWARD_TEAM_LEADER_NEAREST_V1' THEN 'ADVANCED'
+  WHEN 'INVITE_REWARD_TEAM_LEADER_UPPER_V1' THEN 'ADVANCED'
+  WHEN 'INVITE_REWARD_SHAREHOLDER_POOL_V1' THEN 'ADVANCED'
+  ELSE `applicable_plan_code`
+END
+WHERE `trigger_event` = 'MEMBERSHIP_ORDER_PAID_NORMAL';
 
 CREATE TABLE IF NOT EXISTS `ds_product_category` (
   `id` bigint NOT NULL AUTO_INCREMENT,

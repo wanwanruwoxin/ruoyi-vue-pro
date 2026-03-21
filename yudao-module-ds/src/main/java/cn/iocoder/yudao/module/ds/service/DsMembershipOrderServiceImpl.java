@@ -130,25 +130,26 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
 
     private void rewardInviterIfMatched(Long inviteeUid, DsMembershipOrder order, DsMembershipPlan plan, LocalDateTime paidAt) {
         if (NORMAL.getCode().equals(plan.getPlanCode())) {
-            rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1);
+            rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1, plan.getPlanCode());
             return;
         }
         if (!ADVANCED.getCode().equals(plan.getPlanCode())) {
             return;
         }
-        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1);
-        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_2);
+        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1, plan.getPlanCode());
+        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_2, plan.getPlanCode());
         upgradeTeamLeaderIfQualified(inviteeUid);
-        rewardForTeamLeaderLevel3(inviteeUid, order, paidAt);
-        rewardForShareholderPool(order, inviteeUid, paidAt);
+        rewardForTeamLeaderLevel3(inviteeUid, order, paidAt, plan.getPlanCode());
+        rewardForShareholderPool(order, inviteeUid, paidAt, plan.getPlanCode());
     }
 
-    private void rewardForRelationLevel(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt, int relationLevel) {
+    private void rewardForRelationLevel(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt,
+                                        int relationLevel, String planCode) {
         Long inviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, relationLevel);
         if (inviterId == null) {
             return;
         }
-        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(relationLevel);
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(relationLevel, planCode);
         if (rule == null) {
             return;
         }
@@ -175,7 +176,7 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         }
     }
 
-    private void rewardForTeamLeaderLevel3(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt) {
+    private void rewardForTeamLeaderLevel3(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt, String planCode) {
         List<Long> ancestors = listAncestorInviters(inviteeUid);
         if (ancestors.size() < RELATION_LEVEL_3) {
             return;
@@ -197,7 +198,7 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (nearestTeamLeaderId == null) {
             return;
         }
-        DsRewardRule nearestRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_NEAREST);
+        DsRewardRule nearestRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_NEAREST, planCode);
         if (nearestRule != null) {
             grantInviteReward(nearestTeamLeaderId, order.getPayableAmount(), nearestRule,
                     order.getOrderNo() + "-TLN", inviteeUid, paidAt);
@@ -205,15 +206,15 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (upperTeamLeaderId == null) {
             return;
         }
-        DsRewardRule upperRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_UPPER);
+        DsRewardRule upperRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_UPPER, planCode);
         if (upperRule != null) {
             grantInviteReward(upperTeamLeaderId, order.getPayableAmount(), upperRule,
                     order.getOrderNo() + "-TLU", inviteeUid, paidAt);
         }
     }
 
-    private void rewardForShareholderPool(DsMembershipOrder order, Long inviteeUid, LocalDateTime paidAt) {
-        DsRewardRule poolRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(SHAREHOLDER_POOL);
+    private void rewardForShareholderPool(DsMembershipOrder order, Long inviteeUid, LocalDateTime paidAt, String planCode) {
+        DsRewardRule poolRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(SHAREHOLDER_POOL, planCode);
         if (poolRule == null || poolRule.getRewardRate() == null || poolRule.getRewardRate().signum() <= 0) {
             return;
         }

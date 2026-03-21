@@ -6,12 +6,16 @@ import cn.iocoder.yudao.module.ds.controller.app.membership.vo.AppDsMembershipCr
 import cn.iocoder.yudao.module.ds.controller.app.membership.vo.AppDsMembershipOrderActionReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.membership.vo.AppDsMembershipOrderRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.membership.vo.AppDsMembershipPlanRespVO;
+import cn.iocoder.yudao.module.ds.controller.app.membership.vo.AppDsMembershipRewardRuleReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.membership.vo.AppDsMembershipRewardRuleRespVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipOrder;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipPlan;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsRewardRule;
 import cn.iocoder.yudao.module.ds.service.DsMembershipAccountService;
 import cn.iocoder.yudao.module.ds.service.DsMembershipOrderService;
 import cn.iocoder.yudao.module.ds.service.DsMembershipPlanService;
+import cn.iocoder.yudao.module.ds.service.DsRewardRuleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -39,6 +43,8 @@ public class AppDsMembershipController {
     private DsMembershipAccountService dsMembershipAccountService;
     @Resource
     private DsMembershipOrderService dsMembershipOrderService;
+    @Resource
+    private DsRewardRuleService dsRewardRuleService;
 
     @PostMapping("/plans")
     @Operation(summary = "获取会员档位")
@@ -67,6 +73,21 @@ public class AppDsMembershipController {
         respVO.setEffectiveTime(account.getEffectiveTime());
         respVO.setExpireTime(account.getExpireTime());
         return success(respVO);
+    }
+
+    @PostMapping("/reward-rules")
+    @Operation(summary = "获取会员奖励规则")
+    public CommonResult<List<AppDsMembershipRewardRuleRespVO>> getRewardRules(@RequestBody(required = false) AppDsMembershipRewardRuleReqVO reqVO) {
+        List<DsRewardRule> rules = dsRewardRuleService.listMembershipInviteRewardRules(reqVO == null ? null : reqVO.getPlanCode());
+        List<AppDsMembershipRewardRuleRespVO> result = rules.stream().map(rule -> {
+            AppDsMembershipRewardRuleRespVO respVO = new AppDsMembershipRewardRuleRespVO();
+            respVO.setRuleVersion(rule.getRuleVersion());
+            respVO.setRuleDescription(rule.getRuleDescription());
+            respVO.setApplicablePlanCode(rule.getApplicablePlanCode());
+            respVO.setApplicableInviterLevel(rule.getApplicableInviterLevel());
+            return respVO;
+        }).toList();
+        return success(result);
     }
 
     @PostMapping("/order/create")

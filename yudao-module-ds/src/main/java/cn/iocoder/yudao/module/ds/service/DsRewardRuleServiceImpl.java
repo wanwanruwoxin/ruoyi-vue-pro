@@ -10,11 +10,13 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.MEMBERSHIP_ORDER_PAY;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.POINT_GIFT_SEND;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.SHOP_ORDER_PAY;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.ADVANCED;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.MEMBERSHIP_ORDER_PAID_NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.POINT_CONSUME_SCOPE;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_CONSUME_SCOPE_DISABLED;
@@ -27,6 +29,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     private static final String TEAM_LEADER_LEVEL3_NEAREST = "TEAM_LEADER_LEVEL3_NEAREST";
     private static final String TEAM_LEADER_LEVEL3_UPPER = "TEAM_LEADER_LEVEL3_UPPER";
     private static final String SHAREHOLDER_POOL = "SHAREHOLDER_POOL";
+    private static final String PLAN_CODE_ALL = "ALL";
 
     @Resource
     private DsRewardRuleMapper dsRewardRuleMapper;
@@ -42,11 +45,16 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DsRewardRule getMembershipInviteRewardRuleByLevel(Integer relationLevel) {
+        return getMembershipInviteRewardRuleByLevel(relationLevel, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DsRewardRule getMembershipInviteRewardRuleByLevel(Integer relationLevel, String planCode) {
         initDefaultRulesIfAbsent();
         LocalDateTime now = LocalDateTime.now();
         String inviterLevel = relationLevel != null && relationLevel == 2 ? INVITER_LEVEL_2 : INVITER_LEVEL_1;
-        DsRewardRule rule = dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevel(
-                MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, now);
+        DsRewardRule rule = getMembershipInviteRewardRuleByInviterLevel(inviterLevel, planCode);
         if (rule != null) {
             return rule;
         }
@@ -56,9 +64,36 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DsRewardRule getMembershipInviteRewardRuleByInviterLevel(String inviterLevel) {
+        return getMembershipInviteRewardRuleByInviterLevel(inviterLevel, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DsRewardRule getMembershipInviteRewardRuleByInviterLevel(String inviterLevel, String planCode) {
         initDefaultRulesIfAbsent();
+        LocalDateTime now = LocalDateTime.now();
+        if (planCode != null && !planCode.isBlank()) {
+            DsRewardRule planRule = dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevelAndPlanCode(
+                    MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, planCode, now);
+            if (planRule != null) {
+                return planRule;
+            }
+            DsRewardRule commonRule = dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevelAndPlanCode(
+                    MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, PLAN_CODE_ALL, now);
+            if (commonRule != null) {
+                return commonRule;
+            }
+        }
         return dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevel(
-                MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, LocalDateTime.now());
+                MEMBERSHIP_ORDER_PAID_NORMAL.getCode(), inviterLevel, now);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<DsRewardRule> listMembershipInviteRewardRules(String planCode) {
+        initDefaultRulesIfAbsent();
+        String targetPlanCode = planCode == null || planCode.isBlank() ? ADVANCED.getCode() : planCode;
+        return dsRewardRuleMapper.selectActiveInviteRulesByPlanCode(targetPlanCode, LocalDateTime.now());
     }
 
     @Override
@@ -96,6 +131,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .ruleVersion("INVITE_REWARD_V1")
                 .ruleDescription("会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .applicablePlanCode(PLAN_CODE_ALL)
                 .rewardRate(new BigDecimal("0.50"))
                 .dailyCapPoints(new BigDecimal("300"))
                 .applicableInviterLevel(INVITER_LEVEL_1)
@@ -108,6 +144,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .ruleVersion("INVITE_REWARD_LEVEL2_V1")
                 .ruleDescription("会员订单支付后，按订单金额的20%奖励给支付会员的二级邀请人")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .applicablePlanCode(ADVANCED.getCode())
                 .rewardRate(new BigDecimal("0.20"))
                 .dailyCapPoints(new BigDecimal("150"))
                 .applicableInviterLevel(INVITER_LEVEL_2)
@@ -135,6 +172,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .ruleVersion("INVITE_REWARD_LEVEL2_V1")
                 .ruleDescription("会员订单支付后，按订单金额的20%奖励给支付会员的二级邀请人")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .applicablePlanCode(ADVANCED.getCode())
                 .rewardRate(new BigDecimal("0.20"))
                 .dailyCapPoints(new BigDecimal("150"))
                 .applicableInviterLevel(INVITER_LEVEL_2)
@@ -155,6 +193,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .ruleVersion(version)
                 .ruleDescription(resolveConsumeScopeDescription(scopeCode))
                 .triggerEvent(POINT_CONSUME_SCOPE.getCode())
+                .applicablePlanCode(null)
                 .rewardRate(BigDecimal.ONE)
                 .dailyCapPoints(null)
                 .applicableInviterLevel(scopeCode)
@@ -176,6 +215,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .ruleVersion(version)
                 .ruleDescription(resolveInviteRewardDescription(inviterLevel))
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .applicablePlanCode(resolvePlanCodeByInviterLevel(inviterLevel))
                 .rewardRate(rewardRate)
                 .dailyCapPoints(dailyCapPoints)
                 .applicableInviterLevel(inviterLevel)
@@ -210,5 +250,16 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
             return "会员订单支付后，按订单金额的10%计入股东池";
         }
         return "会员邀请奖励规则";
+    }
+
+    private String resolvePlanCodeByInviterLevel(String inviterLevel) {
+        if (INVITER_LEVEL_1.equals(inviterLevel)) {
+            return PLAN_CODE_ALL;
+        }
+        if (INVITER_LEVEL_2.equals(inviterLevel) || TEAM_LEADER_LEVEL3_NEAREST.equals(inviterLevel)
+                || TEAM_LEADER_LEVEL3_UPPER.equals(inviterLevel) || SHAREHOLDER_POOL.equals(inviterLevel)) {
+            return ADVANCED.getCode();
+        }
+        return PLAN_CODE_ALL;
     }
 }

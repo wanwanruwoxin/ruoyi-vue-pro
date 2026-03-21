@@ -29,6 +29,7 @@ public class DsRewardRule extends TenantBaseDO {
     private String ruleVersion;
     private String ruleDescription;
     private String triggerEvent;
+    private String applicablePlanCode;
     private BigDecimal rewardRate;
     private BigDecimal dailyCapPoints;
     private String applicableInviterLevel;
