@@ -531,7 +531,8 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 INSERT INTO `ds_reward_rule` (`rule_version`, `rule_description`, `trigger_event`, `applicable_plan_code`, `reward_rate`, `daily_cap_points`, `applicable_inviter_level`, `status`, `effective_from`, `effective_to`, `creator`, `updater`, `tenant_id`)
-VALUES ('INVITE_REWARD_V1', '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分', 'MEMBERSHIP_ORDER_PAID_NORMAL', 'ALL', 0.5000, 300.00, 'LEVEL_1', 0, NOW(), NULL, '', '', 0),
+VALUES ('INVITE_REWARD_V1', '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分', 'MEMBERSHIP_ORDER_PAID_NORMAL', 'NORMAL', 0.5000, 300.00, 'LEVEL_1', 0, NOW(), NULL, '', '', 0),
+       ('INVITE_REWARD_LEVEL1_ADVANCED_V1', '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级）', 'MEMBERSHIP_ORDER_PAID_NORMAL', 'ADVANCED', 0.5000, NULL, 'LEVEL_1', 0, NOW(), NULL, '', '', 0),
        ('SCOPE_MEMBERSHIP_V1', '积分消费范围限定为会员订单支付场景', 'POINT_CONSUME_SCOPE', NULL, 1.0000, NULL, 'MEMBERSHIP_ORDER_PAY', 0, NOW(), NULL, '', '', 0),
        ('SCOPE_SHOP_V1', '积分消费范围限定为商城订单支付场景', 'POINT_CONSUME_SCOPE', NULL, 1.0000, NULL, 'SHOP_ORDER_PAY', 0, NOW(), NULL, '', '', 0)
 ON DUPLICATE KEY UPDATE
@@ -550,6 +551,7 @@ ON DUPLICATE KEY UPDATE
 UPDATE `ds_reward_rule`
 SET `rule_description` = CASE `rule_version`
   WHEN 'INVITE_REWARD_V1' THEN '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分'
+  WHEN 'INVITE_REWARD_LEVEL1_ADVANCED_V1' THEN '会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级）'
   WHEN 'INVITE_REWARD_LEVEL2_V1' THEN '会员订单支付后，按订单金额的20%奖励给支付会员的二级邀请人'
   WHEN 'INVITE_REWARD_TEAM_LEADER_NEAREST_V1' THEN '会员订单支付后，按订单金额的5%奖励给最近团队长'
   WHEN 'INVITE_REWARD_TEAM_LEADER_UPPER_V1' THEN '会员订单支付后，按订单金额的2%奖励给上级团队长'
@@ -567,7 +569,8 @@ WHERE `rule_version` = 'INVITE_REWARD_V1'
 
 UPDATE `ds_reward_rule`
 SET `applicable_plan_code` = CASE `rule_version`
-  WHEN 'INVITE_REWARD_V1' THEN 'ALL'
+  WHEN 'INVITE_REWARD_V1' THEN 'NORMAL'
+  WHEN 'INVITE_REWARD_LEVEL1_ADVANCED_V1' THEN 'ADVANCED'
   WHEN 'INVITE_REWARD_LEVEL2_V1' THEN 'ADVANCED'
   WHEN 'INVITE_REWARD_TEAM_LEADER_NEAREST_V1' THEN 'ADVANCED'
   WHEN 'INVITE_REWARD_TEAM_LEADER_UPPER_V1' THEN 'ADVANCED'
@@ -575,6 +578,10 @@ SET `applicable_plan_code` = CASE `rule_version`
   ELSE `applicable_plan_code`
 END
 WHERE `trigger_event` = 'MEMBERSHIP_ORDER_PAID_NORMAL';
+
+UPDATE `ds_reward_rule`
+SET `daily_cap_points` = NULL
+WHERE `rule_version` = 'INVITE_REWARD_LEVEL1_ADVANCED_V1';
 
 CREATE TABLE IF NOT EXISTS `ds_product_category` (
   `id` bigint NOT NULL AUTO_INCREMENT,

@@ -10,13 +10,16 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.MEMBERSHIP_ORDER_PAY;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.POINT_GIFT_SEND;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.SHOP_ORDER_PAY;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.ADVANCED;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.MEMBERSHIP_ORDER_PAID_NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.POINT_CONSUME_SCOPE;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_CONSUME_SCOPE_DISABLED;
@@ -93,7 +96,21 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     public List<DsRewardRule> listMembershipInviteRewardRules(String planCode) {
         initDefaultRulesIfAbsent();
         String targetPlanCode = planCode == null || planCode.isBlank() ? ADVANCED.getCode() : planCode;
-        return dsRewardRuleMapper.selectActiveInviteRulesByPlanCode(targetPlanCode, LocalDateTime.now());
+        List<DsRewardRule> rules = dsRewardRuleMapper.selectActiveInviteRulesByPlanCode(targetPlanCode, LocalDateTime.now());
+        Map<String, DsRewardRule> merged = new LinkedHashMap<>();
+        for (DsRewardRule rule : rules) {
+            String inviterLevel = rule.getApplicableInviterLevel();
+            DsRewardRule existed = merged.get(inviterLevel);
+            if (existed == null) {
+                merged.put(inviterLevel, rule);
+                continue;
+            }
+            if (resolvePlanPriority(rule.getApplicablePlanCode(), targetPlanCode)
+                    > resolvePlanPriority(existed.getApplicablePlanCode(), targetPlanCode)) {
+                merged.put(inviterLevel, rule);
+            }
+        }
+        return merged.values().stream().toList();
     }
 
     @Override
@@ -118,6 +135,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     private void initInviteRewardRule() {
         DsRewardRule existed = dsRewardRuleMapper.selectFirstOne(DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode());
         if (existed != null) {
+            initAdvancedFirstLevelInviteRewardRule();
             initSecondLevelInviteRewardRule();
             initSpecialInviteRewardRule(TEAM_LEADER_LEVEL3_NEAREST, "INVITE_REWARD_TEAM_LEADER_NEAREST_V1",
                     new BigDecimal("0.05"), null);
@@ -131,7 +149,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .ruleVersion("INVITE_REWARD_V1")
                 .ruleDescription("会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级），日封顶300积分")
                 .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
-                .applicablePlanCode(PLAN_CODE_ALL)
+                .applicablePlanCode(NORMAL.getCode())
                 .rewardRate(new BigDecimal("0.50"))
                 .dailyCapPoints(new BigDecimal("300"))
                 .applicableInviterLevel(INVITER_LEVEL_1)
@@ -140,6 +158,7 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .effectiveTo(null)
                 .build();
         dsRewardRuleMapper.insert(firstLevelRule);
+        initAdvancedFirstLevelInviteRewardRule();
         DsRewardRule secondLevelRule = DsRewardRule.builder()
                 .ruleVersion("INVITE_REWARD_LEVEL2_V1")
                 .ruleDescription("会员订单支付后，按订单金额的20%奖励给支付会员的二级邀请人")
@@ -159,6 +178,29 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 new BigDecimal("0.02"), null);
         initSpecialInviteRewardRule(SHAREHOLDER_POOL, "INVITE_REWARD_SHAREHOLDER_POOL_V1",
                 new BigDecimal("0.10"), null);
+    }
+
+    private void initAdvancedFirstLevelInviteRewardRule() {
+        DsRewardRule advancedFirstLevelRule = dsRewardRuleMapper.selectFirstOne(
+                DsRewardRule::getTriggerEvent, MEMBERSHIP_ORDER_PAID_NORMAL.getCode(),
+                DsRewardRule::getApplicableInviterLevel, INVITER_LEVEL_1,
+                DsRewardRule::getApplicablePlanCode, ADVANCED.getCode());
+        if (advancedFirstLevelRule != null) {
+            return;
+        }
+        DsRewardRule rule = DsRewardRule.builder()
+                .ruleVersion("INVITE_REWARD_LEVEL1_ADVANCED_V1")
+                .ruleDescription("会员订单支付后，按订单金额的50%奖励给支付会员的直接邀请人（一级）")
+                .triggerEvent(MEMBERSHIP_ORDER_PAID_NORMAL.getCode())
+                .applicablePlanCode(ADVANCED.getCode())
+                .rewardRate(new BigDecimal("0.50"))
+                .dailyCapPoints(null)
+                .applicableInviterLevel(INVITER_LEVEL_1)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .effectiveFrom(LocalDateTime.now())
+                .effectiveTo(null)
+                .build();
+        dsRewardRuleMapper.insert(rule);
     }
 
     private void initSecondLevelInviteRewardRule() {
@@ -254,12 +296,22 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
 
     private String resolvePlanCodeByInviterLevel(String inviterLevel) {
         if (INVITER_LEVEL_1.equals(inviterLevel)) {
-            return PLAN_CODE_ALL;
+            return NORMAL.getCode();
         }
         if (INVITER_LEVEL_2.equals(inviterLevel) || TEAM_LEADER_LEVEL3_NEAREST.equals(inviterLevel)
                 || TEAM_LEADER_LEVEL3_UPPER.equals(inviterLevel) || SHAREHOLDER_POOL.equals(inviterLevel)) {
             return ADVANCED.getCode();
         }
         return PLAN_CODE_ALL;
+    }
+
+    private int resolvePlanPriority(String rulePlanCode, String targetPlanCode) {
+        if (targetPlanCode != null && targetPlanCode.equals(rulePlanCode)) {
+            return 2;
+        }
+        if (PLAN_CODE_ALL.equals(rulePlanCode)) {
+            return 1;
+        }
+        return 0;
     }
 }
