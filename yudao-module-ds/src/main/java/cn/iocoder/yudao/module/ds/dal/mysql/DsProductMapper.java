@@ -30,6 +30,7 @@ public interface DsProductMapper extends BaseMapperX<DsProduct> {
         LambdaQueryWrapperX<DsProduct> wrapper = new LambdaQueryWrapperX<DsProduct>();
         wrapper.eq(DsProduct::getShopId, shopId);
         wrapper.eq(DsProduct::getSaleStatus, 1);
+        wrapper.eqIfPresent(DsProduct::getCategoryId, reqVO.getCategoryId());
         wrapper.likeIfPresent(DsProduct::getProductName, reqVO.getKeyword());
         wrapper.orderByAsc(DsProduct::getSort);
         wrapper.orderByDesc(DsProduct::getId);

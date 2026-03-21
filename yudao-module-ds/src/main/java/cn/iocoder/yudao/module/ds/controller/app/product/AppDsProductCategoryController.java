@@ -34,5 +34,5 @@ public class AppDsProductCategoryController {
                 .orderByAsc(DsProductCategory::getSort)
                 .orderByDesc(DsProductCategory::getId));
         return success(dsProductCategories);
-    }
+    } 
 }
