@@ -94,6 +94,16 @@ public class DsProductServiceImpl implements DsProductService {
     }
 
     @Override
+    public DsProduct getShelfProduct(Long id) {
+        DsProduct product = dsProductMapper.selectById(id);
+        if (product == null || !Integer.valueOf(1).equals(product.getSaleStatus())) {
+            throw exception(PRODUCT_NOT_EXISTS);
+        }
+        dsShopService.validateShopById(product.getShopId());
+        return product;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createAdminProduct(@Valid DsProductSaveReqVO reqVO) {
         dsShopService.validateShopById(reqVO.getShopId());

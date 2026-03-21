@@ -21,6 +21,8 @@ public interface DsProductService {
 
     PageResult<DsProduct> getShelfProductPage(AppDsProductListReqVO reqVO);
 
+    DsProduct getShelfProduct(Long id);
+
     Long createAdminProduct(@Valid DsProductSaveReqVO reqVO);
 
     void updateAdminProduct(@Valid DsProductSaveReqVO reqVO);

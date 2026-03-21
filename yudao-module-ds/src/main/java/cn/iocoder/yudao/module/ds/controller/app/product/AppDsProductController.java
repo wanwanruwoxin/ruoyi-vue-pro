@@ -15,8 +15,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -70,6 +72,13 @@ public class AppDsProductController {
         return success(convertPage(pageResult));
     }
 
+    @GetMapping("/get")
+    @Operation(summary = "获取商品详情")
+    public CommonResult<AppDsProductRespVO> getShelfProduct(@RequestParam("id") Long id) {
+        DsProduct product = dsProductService.getShelfProduct(id);
+        return success(convertProduct(product));
+    }
+
     private static PageResult<AppDsProductRespVO> convertPage(PageResult<DsProduct> pageResult) {
         PageResult<AppDsProductRespVO> result = new PageResult<>(pageResult.getTotal());
         result.setList(pageResult.getList().stream().map(AppDsProductController::convertProduct).toList());
@@ -83,7 +92,7 @@ public class AppDsProductController {
         respVO.setProductName(product.getProductName());
         respVO.setPriceAmount(product.getPriceAmount());
         respVO.setStock(product.getStock());
-        respVO.setDetailDesc(product.getDetailDesc());
+        respVO.setDetailDesc(StrUtil.emptyToDefault(product.getDescription(), product.getDetailDesc()));
         respVO.setSaleStatus(product.getSaleStatus());
         respVO.setSort(product.getSort());
         respVO.setImageUrls(splitUrls(product.getImageUrls()));
