@@ -23,7 +23,7 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.INVITER_NOT_EX
 @Validated
 public class DsInviteRelationServiceImpl implements DsInviteRelationService {
 
-    private static final String INVITE_LINK_TEMPLATE = "/ds/invite/register?inviterId=%d";
+    private static final String INVITE_LINK_TEMPLATE = "/pages/auth/register?inviterId=%d";
     private static final int DIRECT_LEVEL = 1;
 
     @Resource
