@@ -19,4 +19,14 @@ public interface DsMembershipAccountMapper extends BaseMapperX<DsMembershipAccou
                 .eq(DsMembershipAccount::getShareholder, shareholder)
                 .eq(DsMembershipAccount::getMemberStatus, memberStatus));
     }
+
+    default int selectCountByUidsAndPlanCode(List<Long> uids, String planCode) {
+        if (uids == null || uids.isEmpty()) {
+            return 0;
+        }
+        Long count = selectCount(new LambdaQueryWrapperX<DsMembershipAccount>()
+                .in(DsMembershipAccount::getUid, uids)
+                .eq(DsMembershipAccount::getCurrentPlanCode, planCode));
+        return count == null ? 0 : count.intValue();
+    }
 }

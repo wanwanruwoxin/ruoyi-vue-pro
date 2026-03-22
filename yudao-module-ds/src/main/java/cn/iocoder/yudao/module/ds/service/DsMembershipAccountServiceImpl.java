@@ -111,6 +111,11 @@ public class DsMembershipAccountServiceImpl implements DsMembershipAccountServic
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public int countByUidsAndPlanCode(List<Long> uids, String planCode) {
+        return dsMembershipAccountMapper.selectCountByUidsAndPlanCode(uids, planCode);
+    }
+
     private void refreshMemberStatus(DsMembershipAccount account) {
         LocalDateTime now = LocalDateTime.now();
         String status = account.getMemberStatus();

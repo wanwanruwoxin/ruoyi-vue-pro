@@ -23,4 +23,6 @@ public interface DsMembershipAccountService {
     void markAsTeamLeader(Long uid);
 
     List<Long> listActiveShareholderUids();
+
+    int countByUidsAndPlanCode(List<Long> uids, String planCode);
 }

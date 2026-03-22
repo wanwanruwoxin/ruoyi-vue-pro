@@ -181,16 +181,9 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
             return;
         }
         List<Long> directInviteeIds = dsInviteRelationService.getDirectInviteeIds(directInviterId);
-        int advancedCount = 0;
-        for (Long directInviteeId : directInviteeIds) {
-            DsMembershipAccount inviteeAccount = dsMembershipAccountService.getAccountIfPresent(directInviteeId);
-            if (inviteeAccount != null && ADVANCED.getCode().equals(inviteeAccount.getCurrentPlanCode())) {
-                advancedCount++;
-            }
-            if (advancedCount >= TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD) {
-                dsMembershipAccountService.markAsTeamLeader(directInviterId);
-                return;
-            }
+        int advancedCount = dsMembershipAccountService.countByUidsAndPlanCode(directInviteeIds, ADVANCED.getCode());
+        if (advancedCount >= TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD) {
+            dsMembershipAccountService.markAsTeamLeader(directInviterId);
         }
     }
 
