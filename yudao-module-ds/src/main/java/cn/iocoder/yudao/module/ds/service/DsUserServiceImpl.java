@@ -182,8 +182,10 @@ public class DsUserServiceImpl implements DsUserService {
     }
 
     private AppDsAuthLoginRespVO buildLoginResp(OAuth2AccessTokenRespDTO token) {
+        DsUser dsUser = dsUserMapper.selectById(token.getUserId());
         return AppDsAuthLoginRespVO.builder()
                 .userId(token.getUserId())
+                .nickname(dsUser != null ? dsUser.getNickname() : null)
                 .accessToken(token.getAccessToken())
                 .refreshToken(token.getRefreshToken())
                 .expiresTime(token.getExpiresTime())
