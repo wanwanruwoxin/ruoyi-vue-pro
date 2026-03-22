@@ -8,6 +8,8 @@ import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.module.ds.controller.admin.user.vo.DsUserUpdateReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserAvatarUpdateReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserProfileRespVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
@@ -136,6 +138,30 @@ public class DsUserServiceImpl implements DsUserService {
     }
 
     @Override
+    public AppDsUserProfileRespVO getUserProfile(Long userId) {
+        DsUser dsUser = dsUserMapper.selectById(userId);
+        if (dsUser == null) {
+            throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
+        }
+        AppDsUserProfileRespVO respVO = new AppDsUserProfileRespVO();
+        respVO.setUserId(dsUser.getId());
+        respVO.setNickname(dsUser.getNickname());
+        respVO.setAvatar(dsUser.getAvatar());
+        return respVO;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateUserAvatar(Long userId, AppDsUserAvatarUpdateReqVO reqVO) {
+        DsUser dsUser = dsUserMapper.selectById(userId);
+        if (dsUser == null) {
+            throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
+        }
+        dsUser.setAvatar(reqVO.getAvatar());
+        dsUserMapper.updateById(dsUser);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateAdminUser(DsUserUpdateReqVO reqVO) {
         BigDecimal availablePoints = reqVO.getAvailablePoints() == null ? BigDecimal.ZERO : reqVO.getAvailablePoints();
@@ -186,6 +212,7 @@ public class DsUserServiceImpl implements DsUserService {
         return AppDsAuthLoginRespVO.builder()
                 .userId(token.getUserId())
                 .nickname(dsUser != null ? dsUser.getNickname() : null)
+                .avatar(dsUser != null ? dsUser.getAvatar() : null)
                 .accessToken(token.getAccessToken())
                 .refreshToken(token.getRefreshToken())
                 .expiresTime(token.getExpiresTime())

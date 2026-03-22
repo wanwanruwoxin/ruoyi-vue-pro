@@ -8,6 +8,8 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserAvatarUpdateReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserProfileRespVO;
 import cn.iocoder.yudao.module.ds.service.DsUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
 
 @Tag(name = "用户 APP - DS 认证")
 @RestController
@@ -72,5 +75,18 @@ public class AppDsAuthController {
     @PermitAll
     public CommonResult<AppDsAuthLoginRespVO> refreshToken(@RequestParam("refreshToken") String refreshToken) {
         return success(dsUserService.refreshToken(refreshToken));
+    }
+
+    @PostMapping("/profile")
+    @Operation(summary = "获取当前用户资料")
+    public CommonResult<AppDsUserProfileRespVO> getProfile() {
+        return success(dsUserService.getUserProfile(getLoginUserId()));
+    }
+
+    @PostMapping("/profile/update-avatar")
+    @Operation(summary = "更新当前用户头像")
+    public CommonResult<Boolean> updateAvatar(@RequestBody @Valid AppDsUserAvatarUpdateReqVO reqVO) {
+        dsUserService.updateUserAvatar(getLoginUserId(), reqVO);
+        return success(true);
     }
 }

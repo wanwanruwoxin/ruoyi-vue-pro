@@ -21,6 +21,9 @@ public class AppDsAuthLoginRespVO {
     @Schema(description = "用户昵称", example = "三三用户")
     private String nickname;
 
+    @Schema(description = "用户头像", example = "https://www.iocoder.cn/avatar.png")
+    private String avatar;
+
     @Schema(description = "访问令牌", requiredMode = Schema.RequiredMode.REQUIRED, example = "happy")
     private String accessToken;
 
