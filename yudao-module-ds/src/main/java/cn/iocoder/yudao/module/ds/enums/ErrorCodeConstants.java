@@ -28,4 +28,5 @@ public interface ErrorCodeConstants {
     ErrorCode SHOP_AUDIT_NOT_ALLOWED = new ErrorCode(1_060_000_021, "当前店铺状态不允许审核");
     ErrorCode SHOP_NOT_APPROVED = new ErrorCode(1_060_000_022, "店铺未审核通过，无法操作");
     ErrorCode AUTH_ADMIN_NOT_OPENED = new ErrorCode(1_060_000_023, "店铺审核通过后才可登录商家后台");
+    ErrorCode USER_ADDRESS_NOT_EXISTS = new ErrorCode(1_060_000_024, "收货地址不存在");
 }
