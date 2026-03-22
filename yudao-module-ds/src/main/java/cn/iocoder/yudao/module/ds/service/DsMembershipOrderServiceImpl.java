@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipPlan;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsRewardRule;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipOrderMapper;
+import cn.iocoder.yudao.module.ds.enums.DsTeamConfigConstants;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.ADVANCED;
@@ -34,14 +36,6 @@ import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.MEMBERSHIP_ORD
 @Service
 @Validated
 public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
-    private static final int RELATION_LEVEL_1 = 1;
-    private static final int RELATION_LEVEL_2 = 2;
-    private static final int RELATION_LEVEL_3 = 3;
-    private static final int TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD = 10;
-    private static final String TEAM_LEADER_LEVEL3_NEAREST = "TEAM_LEADER_LEVEL3_NEAREST";
-    private static final String TEAM_LEADER_LEVEL3_UPPER = "TEAM_LEADER_LEVEL3_UPPER";
-    private static final String SHAREHOLDER_POOL = "SHAREHOLDER_POOL";
-
     @Resource
     private DsMembershipOrderMapper dsMembershipOrderMapper;
     @Resource
@@ -56,6 +50,8 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     private DsRewardRuleService dsRewardRuleService;
     @Resource
     private DsPointLedgerService dsPointLedgerService;
+    @Resource
+    private DsTeamConfigService dsTeamConfigService;
 
     @Override
     public DsMembershipOrder createOrder(Long uid, Long planId) {
@@ -129,18 +125,20 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     }
 
     private void rewardInviterIfMatched(Long inviteeUid, DsMembershipOrder order, DsMembershipPlan plan, LocalDateTime paidAt) {
-        rewardForFirstLevelByInviterMembership(inviteeUid, order, paidAt);
-        rewardForSecondLevelAdvancedInviter(inviteeUid, order, paidAt);
+        TeamRewardConfig config = resolveTeamRewardConfig();
+        rewardForFirstLevelByInviterMembership(inviteeUid, order, paidAt, config);
+        rewardForSecondLevelAdvancedInviter(inviteeUid, order, paidAt, config);
         if (!ADVANCED.getCode().equals(plan.getPlanCode())) {
             return;
         }
-        upgradeTeamLeaderIfQualified(inviteeUid);
-        rewardForTeamLeaderLevel3(inviteeUid, order, paidAt, plan.getPlanCode());
-        rewardForShareholderPool(order, inviteeUid, paidAt, plan.getPlanCode());
+        upgradeTeamLeaderIfQualified(inviteeUid, config);
+        rewardForTeamLeaderLevel3(inviteeUid, order, paidAt, plan.getPlanCode(), config);
+        rewardForShareholderPool(order, inviteeUid, paidAt, plan.getPlanCode(), config);
     }
 
-    private void rewardForFirstLevelByInviterMembership(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt) {
-        Long firstLevelInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, RELATION_LEVEL_1);
+    private void rewardForFirstLevelByInviterMembership(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt,
+                                                         TeamRewardConfig config) {
+        Long firstLevelInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, config.relationLevel1);
         if (firstLevelInviterId == null) {
             return;
         }
@@ -152,15 +150,16 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (!NORMAL.getCode().equals(inviterPlanCode) && !ADVANCED.getCode().equals(inviterPlanCode)) {
             return;
         }
-        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(RELATION_LEVEL_1, inviterPlanCode);
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(config.relationLevel1, inviterPlanCode);
         if (rule == null) {
             return;
         }
         grantInviteReward(firstLevelInviterId, order.getPayableAmount(), rule, order.getOrderNo(), inviteeUid, paidAt);
     }
 
-    private void rewardForSecondLevelAdvancedInviter(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt) {
-        Long secondLevelInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, RELATION_LEVEL_2);
+    private void rewardForSecondLevelAdvancedInviter(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt,
+                                                     TeamRewardConfig config) {
+        Long secondLevelInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, config.relationLevel2);
         if (secondLevelInviterId == null) {
             return;
         }
@@ -168,33 +167,34 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (secondLevelInviterAccount == null || !ADVANCED.getCode().equals(secondLevelInviterAccount.getCurrentPlanCode())) {
             return;
         }
-        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(RELATION_LEVEL_2, ADVANCED.getCode());
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(config.relationLevel2, ADVANCED.getCode());
         if (rule == null) {
             return;
         }
         grantInviteReward(secondLevelInviterId, order.getPayableAmount(), rule, order.getOrderNo() + "-L2", inviteeUid, paidAt);
     }
 
-    private void upgradeTeamLeaderIfQualified(Long inviteeUid) {
-        Long directInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, RELATION_LEVEL_1);
+    private void upgradeTeamLeaderIfQualified(Long inviteeUid, TeamRewardConfig config) {
+        Long directInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, config.relationLevel1);
         if (directInviterId == null || dsMembershipAccountService.isTeamLeader(directInviterId)) {
             return;
         }
         List<Long> directInviteeIds = dsInviteRelationService.getDirectInviteeIds(directInviterId);
         int advancedCount = dsMembershipAccountService.countByUidsAndPlanCode(directInviteeIds, ADVANCED.getCode());
-        if (advancedCount >= TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD) {
+        if (advancedCount >= config.teamLeaderDirectAdvancedThreshold) {
             dsMembershipAccountService.markAsTeamLeader(directInviterId);
         }
     }
 
-    private void rewardForTeamLeaderLevel3(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt, String planCode) {
+    private void rewardForTeamLeaderLevel3(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt,
+                                           String planCode, TeamRewardConfig config) {
         List<Long> ancestors = listAncestorInviters(inviteeUid);
-        if (ancestors.size() < RELATION_LEVEL_3) {
+        if (ancestors.size() < config.relationLevel3) {
             return;
         }
         Long nearestTeamLeaderId = null;
         Long upperTeamLeaderId = null;
-        for (int i = RELATION_LEVEL_3 - 1; i < ancestors.size(); i++) {
+        for (int i = config.relationLevel3 - 1; i < ancestors.size(); i++) {
             Long inviterId = ancestors.get(i);
             if (!dsMembershipAccountService.isTeamLeader(inviterId)) {
                 continue;
@@ -209,7 +209,8 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (nearestTeamLeaderId == null) {
             return;
         }
-        DsRewardRule nearestRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_NEAREST, planCode);
+        DsRewardRule nearestRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(
+                config.teamLeaderLevel3Nearest, planCode);
         if (nearestRule != null) {
             grantInviteReward(nearestTeamLeaderId, order.getPayableAmount(), nearestRule,
                     order.getOrderNo() + "-TLN", inviteeUid, paidAt);
@@ -217,15 +218,18 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (upperTeamLeaderId == null) {
             return;
         }
-        DsRewardRule upperRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(TEAM_LEADER_LEVEL3_UPPER, planCode);
+        DsRewardRule upperRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(
+                config.teamLeaderLevel3Upper, planCode);
         if (upperRule != null) {
             grantInviteReward(upperTeamLeaderId, order.getPayableAmount(), upperRule,
                     order.getOrderNo() + "-TLU", inviteeUid, paidAt);
         }
     }
 
-    private void rewardForShareholderPool(DsMembershipOrder order, Long inviteeUid, LocalDateTime paidAt, String planCode) {
-        DsRewardRule poolRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(SHAREHOLDER_POOL, planCode);
+    private void rewardForShareholderPool(DsMembershipOrder order, Long inviteeUid, LocalDateTime paidAt,
+                                          String planCode, TeamRewardConfig config) {
+        DsRewardRule poolRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(
+                config.shareholderPool, planCode);
         if (poolRule == null || poolRule.getRewardRate() == null || poolRule.getRewardRate().signum() <= 0) {
             return;
         }
@@ -301,5 +305,44 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         }
         dsPointAccountService.earnPoints(inviterId, rewardPoints, INVITE_MEMBERSHIP_REWARD.getCode(),
                 rewardBizNo, sourceUid, rule.getRuleVersion(), paidAt);
+    }
+
+    private TeamRewardConfig resolveTeamRewardConfig() {
+        Map<String, String> values = dsTeamConfigService.getConfigValueMap(DsTeamConfigConstants.TEAM_REWARD_KEYS);
+        int relationLevel1 = parseInt(values.get(DsTeamConfigConstants.KEY_RELATION_LEVEL_1), 1);
+        int relationLevel2 = parseInt(values.get(DsTeamConfigConstants.KEY_RELATION_LEVEL_2), 2);
+        int relationLevel3 = parseInt(values.get(DsTeamConfigConstants.KEY_RELATION_LEVEL_3), 3);
+        int threshold = parseInt(values.get(DsTeamConfigConstants.KEY_TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD), 10);
+        String nearest = parseString(values.get(DsTeamConfigConstants.KEY_TEAM_LEADER_LEVEL3_NEAREST), "TEAM_LEADER_LEVEL3_NEAREST");
+        String upper = parseString(values.get(DsTeamConfigConstants.KEY_TEAM_LEADER_LEVEL3_UPPER), "TEAM_LEADER_LEVEL3_UPPER");
+        String pool = parseString(values.get(DsTeamConfigConstants.KEY_SHAREHOLDER_POOL), "SHAREHOLDER_POOL");
+        return new TeamRewardConfig(relationLevel1, relationLevel2, relationLevel3, threshold, nearest, upper, pool);
+    }
+
+    private int parseInt(String value, int defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
+    private String parseString(String value, String defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        return value.trim();
+    }
+
+    private record TeamRewardConfig(int relationLevel1,
+                                    int relationLevel2,
+                                    int relationLevel3,
+                                    int teamLeaderDirectAdvancedThreshold,
+                                    String teamLeaderLevel3Nearest,
+                                    String teamLeaderLevel3Upper,
+                                    String shareholderPool) {
     }
 }
