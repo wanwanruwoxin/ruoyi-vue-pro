@@ -30,4 +30,10 @@ public interface DsInviteRelationMapper extends BaseMapperX<DsInviteRelation> {
                 .eq(DsInviteRelation::getInviterId, inviterId)
                 .eq(DsInviteRelation::getLevel, level));
     }
+
+    default List<DsInviteRelation> selectListByInviterIdAndMinLevel(Long inviterId, Integer minLevel) {
+        return selectList(new LambdaQueryWrapperX<DsInviteRelation>()
+                .eq(DsInviteRelation::getInviterId, inviterId)
+                .ge(DsInviteRelation::getLevel, minLevel));
+    }
 }
