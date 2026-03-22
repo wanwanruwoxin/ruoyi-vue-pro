@@ -129,32 +129,50 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     }
 
     private void rewardInviterIfMatched(Long inviteeUid, DsMembershipOrder order, DsMembershipPlan plan, LocalDateTime paidAt) {
-        if (NORMAL.getCode().equals(plan.getPlanCode())) {
-            rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1, plan.getPlanCode());
-            return;
-        }
+        rewardForFirstLevelByInviterMembership(inviteeUid, order, paidAt);
+        rewardForSecondLevelAdvancedInviter(inviteeUid, order, paidAt);
         if (!ADVANCED.getCode().equals(plan.getPlanCode())) {
             return;
         }
-        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_1, plan.getPlanCode());
-        rewardForRelationLevel(inviteeUid, order, paidAt, RELATION_LEVEL_2, plan.getPlanCode());
         upgradeTeamLeaderIfQualified(inviteeUid);
         rewardForTeamLeaderLevel3(inviteeUid, order, paidAt, plan.getPlanCode());
         rewardForShareholderPool(order, inviteeUid, paidAt, plan.getPlanCode());
     }
 
-    private void rewardForRelationLevel(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt,
-                                        int relationLevel, String planCode) {
-        Long inviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, relationLevel);
-        if (inviterId == null) {
+    private void rewardForFirstLevelByInviterMembership(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt) {
+        Long firstLevelInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, RELATION_LEVEL_1);
+        if (firstLevelInviterId == null) {
             return;
         }
-        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(relationLevel, planCode);
+        DsMembershipAccount firstLevelInviterAccount = dsMembershipAccountService.getAccountIfPresent(firstLevelInviterId);
+        if (firstLevelInviterAccount == null) {
+            return;
+        }
+        String inviterPlanCode = firstLevelInviterAccount.getCurrentPlanCode();
+        if (!NORMAL.getCode().equals(inviterPlanCode) && !ADVANCED.getCode().equals(inviterPlanCode)) {
+            return;
+        }
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(RELATION_LEVEL_1, inviterPlanCode);
         if (rule == null) {
             return;
         }
-        String rewardBizNo = relationLevel == RELATION_LEVEL_1 ? order.getOrderNo() : order.getOrderNo() + "-L2";
-        grantInviteReward(inviterId, order.getPayableAmount(), rule, rewardBizNo, inviteeUid, paidAt);
+        grantInviteReward(firstLevelInviterId, order.getPayableAmount(), rule, order.getOrderNo(), inviteeUid, paidAt);
+    }
+
+    private void rewardForSecondLevelAdvancedInviter(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt) {
+        Long secondLevelInviterId = dsInviteRelationService.getInviterIdByInviteeIdAndLevel(inviteeUid, RELATION_LEVEL_2);
+        if (secondLevelInviterId == null) {
+            return;
+        }
+        DsMembershipAccount secondLevelInviterAccount = dsMembershipAccountService.getAccountIfPresent(secondLevelInviterId);
+        if (secondLevelInviterAccount == null || !ADVANCED.getCode().equals(secondLevelInviterAccount.getCurrentPlanCode())) {
+            return;
+        }
+        DsRewardRule rule = dsRewardRuleService.getMembershipInviteRewardRuleByLevel(RELATION_LEVEL_2, ADVANCED.getCode());
+        if (rule == null) {
+            return;
+        }
+        grantInviteReward(secondLevelInviterId, order.getPayableAmount(), rule, order.getOrderNo() + "-L2", inviteeUid, paidAt);
     }
 
     private void upgradeTeamLeaderIfQualified(Long inviteeUid) {
