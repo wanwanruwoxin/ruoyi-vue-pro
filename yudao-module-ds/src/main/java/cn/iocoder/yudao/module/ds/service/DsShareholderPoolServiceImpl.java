@@ -62,7 +62,7 @@ public class DsShareholderPoolServiceImpl implements DsShareholderPoolService {
                 .profitAmount(order.getPayableAmount())
                 .poolRate(poolRate)
                 .poolAmount(poolAmount)
-                .settleMonth(YearMonth.from(occurredAt).toString())
+                .settleMonth(resolveSettleMonth(occurredAt))
                 .settleStatus(SETTLE_STATUS_PENDING)
                 .occurredAt(occurredAt)
                 .build();
@@ -92,7 +92,7 @@ public class DsShareholderPoolServiceImpl implements DsShareholderPoolService {
                 .profitAmount(order.getTotalAmount())
                 .poolRate(poolRate)
                 .poolAmount(poolAmount)
-                .settleMonth(YearMonth.from(occurredAt).toString())
+                .settleMonth(resolveSettleMonth(occurredAt))
                 .settleStatus(SETTLE_STATUS_PENDING)
                 .occurredAt(occurredAt)
                 .build();
@@ -161,5 +161,9 @@ public class DsShareholderPoolServiceImpl implements DsShareholderPoolService {
         } catch (NumberFormatException ignored) {
             return BigDecimal.ZERO;
         }
+    }
+
+    private String resolveSettleMonth(LocalDateTime occurredAt) {
+        return YearMonth.from(occurredAt).plusMonths(1).toString();
     }
 }

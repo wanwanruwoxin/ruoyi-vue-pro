@@ -17,7 +17,7 @@ public class DsShareholderPoolDividendJob {
 
     @Scheduled(cron = "0 0 2 1 * ?")
     public void settleLastMonthDividend() {
-        YearMonth settleMonth = YearMonth.now().minusMonths(1);
+        YearMonth settleMonth = YearMonth.now();
         try {
             dsShareholderPoolService.settleMonthlyDividend(settleMonth);
         } catch (Exception ex) {
