@@ -35,6 +35,8 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
     private DsProductMapper dsProductMapper;
     @Resource
     private DsPointAccountService dsPointAccountService;
+    @Resource
+    private DsShareholderPoolService dsShareholderPoolService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -87,6 +89,7 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
                 .productSummary(summaryBuilder.toString())
                 .build();
         dsShopOrderMapper.insert(order);
+        dsShareholderPoolService.recordShopOrderProfitToPool(order);
         return order;
     }
 

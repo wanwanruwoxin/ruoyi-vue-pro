@@ -102,7 +102,8 @@ public class DsTeamConfigServiceImpl implements DsTeamConfigService {
         if (DsTeamConfigConstants.KEY_RELATION_LEVEL_1.equals(configKey)
                 || DsTeamConfigConstants.KEY_RELATION_LEVEL_2.equals(configKey)
                 || DsTeamConfigConstants.KEY_RELATION_LEVEL_3.equals(configKey)
-                || DsTeamConfigConstants.KEY_TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD.equals(configKey)) {
+                || DsTeamConfigConstants.KEY_TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD.equals(configKey)
+                || DsTeamConfigConstants.KEY_SHAREHOLDER_POOL_RATE.equals(configKey)) {
             return DsTeamConfigConstants.VALUE_TYPE_INT;
         }
         return DsTeamConfigConstants.VALUE_TYPE_STRING;
@@ -129,6 +130,9 @@ public class DsTeamConfigServiceImpl implements DsTeamConfigService {
         }
         if (DsTeamConfigConstants.KEY_SHAREHOLDER_POOL.equals(configKey)) {
             return "股东池奖励层级标识";
+        }
+        if (DsTeamConfigConstants.KEY_SHAREHOLDER_POOL_RATE.equals(configKey)) {
+            return "股东池入池比例(%)";
         }
         return configKey;
     }

@@ -52,6 +52,8 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
     private DsPointLedgerService dsPointLedgerService;
     @Resource
     private DsTeamConfigService dsTeamConfigService;
+    @Resource
+    private DsShareholderPoolService dsShareholderPoolService;
 
     @Override
     public DsMembershipOrder createOrder(Long uid, Long planId) {
@@ -83,6 +85,7 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         order.setPaidAt(paidAt);
         dsMembershipOrderMapper.updateById(order);
         dsMembershipAccountService.activateMembership(uid, plan, paidAt);
+        dsShareholderPoolService.recordMembershipOrderProfitToPool(order);
         rewardInviterIfMatched(uid, order, plan, paidAt);
     }
 
@@ -133,7 +136,6 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         }
         upgradeTeamLeaderIfQualified(inviteeUid, config);
         rewardForTeamLeaderLevel3(inviteeUid, order, paidAt, plan.getPlanCode(), config);
-        rewardForShareholderPool(order, inviteeUid, paidAt, plan.getPlanCode(), config);
     }
 
     private void rewardForFirstLevelByInviterMembership(Long inviteeUid, DsMembershipOrder order, LocalDateTime paidAt,
@@ -223,35 +225,6 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (upperRule != null) {
             grantInviteReward(upperTeamLeaderId, order.getPayableAmount(), upperRule,
                     order.getOrderNo() + "-TLU", inviteeUid, paidAt);
-        }
-    }
-
-    private void rewardForShareholderPool(DsMembershipOrder order, Long inviteeUid, LocalDateTime paidAt,
-                                          String planCode, TeamRewardConfig config) {
-        DsRewardRule poolRule = dsRewardRuleService.getMembershipInviteRewardRuleByInviterLevel(
-                config.shareholderPool, planCode);
-        if (poolRule == null || poolRule.getRewardRate() == null || poolRule.getRewardRate().signum() <= 0) {
-            return;
-        }
-        List<Long> shareholderUids = dsMembershipAccountService.listActiveShareholderUids();
-        if (shareholderUids.isEmpty()) {
-            return;
-        }
-        BigDecimal poolAmount = order.getPayableAmount().multiply(poolRule.getRewardRate()).setScale(2, RoundingMode.HALF_UP);
-        if (poolAmount.signum() <= 0) {
-            return;
-        }
-        BigDecimal average = poolAmount.divide(BigDecimal.valueOf(shareholderUids.size()), 2, RoundingMode.DOWN);
-        BigDecimal distributed = average.multiply(BigDecimal.valueOf(shareholderUids.size()));
-        BigDecimal remainder = poolAmount.subtract(distributed);
-        for (int i = 0; i < shareholderUids.size(); i++) {
-            Long shareholderUid = shareholderUids.get(i);
-            BigDecimal rewardAmount = i == shareholderUids.size() - 1 ? average.add(remainder) : average;
-            if (rewardAmount.signum() <= 0) {
-                continue;
-            }
-            grantRewardPoints(shareholderUid, rewardAmount, poolRule,
-                    order.getOrderNo() + "-SP-" + shareholderUid, inviteeUid, paidAt);
         }
     }
 

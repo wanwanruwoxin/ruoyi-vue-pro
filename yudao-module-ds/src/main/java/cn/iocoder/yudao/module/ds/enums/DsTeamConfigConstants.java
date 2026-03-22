@@ -15,6 +15,7 @@ public final class DsTeamConfigConstants {
     public static final String KEY_TEAM_LEADER_LEVEL3_NEAREST = "TEAM_LEADER_LEVEL3_NEAREST";
     public static final String KEY_TEAM_LEADER_LEVEL3_UPPER = "TEAM_LEADER_LEVEL3_UPPER";
     public static final String KEY_SHAREHOLDER_POOL = "SHAREHOLDER_POOL";
+    public static final String KEY_SHAREHOLDER_POOL_RATE = "SHAREHOLDER_POOL_RATE";
 
     public static final String VALUE_TYPE_INT = "INT";
     public static final String VALUE_TYPE_STRING = "STRING";
@@ -26,7 +27,8 @@ public final class DsTeamConfigConstants {
             KEY_TEAM_LEADER_DIRECT_ADVANCED_THRESHOLD,
             KEY_TEAM_LEADER_LEVEL3_NEAREST,
             KEY_TEAM_LEADER_LEVEL3_UPPER,
-            KEY_SHAREHOLDER_POOL
+            KEY_SHAREHOLDER_POOL,
+            KEY_SHAREHOLDER_POOL_RATE
     );
 
     private DsTeamConfigConstants() {
@@ -41,6 +43,7 @@ public final class DsTeamConfigConstants {
         map.put(KEY_TEAM_LEADER_LEVEL3_NEAREST, "TEAM_LEADER_LEVEL3_NEAREST");
         map.put(KEY_TEAM_LEADER_LEVEL3_UPPER, "TEAM_LEADER_LEVEL3_UPPER");
         map.put(KEY_SHAREHOLDER_POOL, "SHAREHOLDER_POOL");
+        map.put(KEY_SHAREHOLDER_POOL_RATE, "10");
         return map;
     }
 }
