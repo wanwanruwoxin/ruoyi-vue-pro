@@ -29,4 +29,6 @@ public interface ErrorCodeConstants {
     ErrorCode SHOP_NOT_APPROVED = new ErrorCode(1_060_000_022, "店铺未审核通过，无法操作");
     ErrorCode AUTH_ADMIN_NOT_OPENED = new ErrorCode(1_060_000_023, "店铺审核通过后才可登录商家后台");
     ErrorCode USER_ADDRESS_NOT_EXISTS = new ErrorCode(1_060_000_024, "收货地址不存在");
+    ErrorCode SHOP_ORDER_NOT_EXISTS = new ErrorCode(1_060_000_025, "订单不存在");
+    ErrorCode PRODUCT_STOCK_NOT_ENOUGH = new ErrorCode(1_060_000_026, "商品库存不足");
 }
