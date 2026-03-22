@@ -31,4 +31,5 @@ public interface ErrorCodeConstants {
     ErrorCode USER_ADDRESS_NOT_EXISTS = new ErrorCode(1_060_000_024, "收货地址不存在");
     ErrorCode SHOP_ORDER_NOT_EXISTS = new ErrorCode(1_060_000_025, "订单不存在");
     ErrorCode PRODUCT_STOCK_NOT_ENOUGH = new ErrorCode(1_060_000_026, "商品库存不足");
+    ErrorCode USER_PASSWORD_OLD_INCORRECT = new ErrorCode(1_060_000_027, "旧密码不正确");
 }

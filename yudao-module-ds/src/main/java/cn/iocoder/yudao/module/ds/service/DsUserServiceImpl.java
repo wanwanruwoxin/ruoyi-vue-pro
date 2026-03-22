@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.ds.controller.admin.user.vo.DsUserUpdateReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserAvatarUpdateReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserNicknameUpdateReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserPasswordUpdateReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserProfileRespVO;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsMembershipAccount;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
@@ -152,12 +154,37 @@ public class DsUserServiceImpl implements DsUserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void updateUserNickname(Long userId, AppDsUserNicknameUpdateReqVO reqVO) {
+        DsUser dsUser = dsUserMapper.selectById(userId);
+        if (dsUser == null) {
+            throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
+        }
+        dsUser.setNickname(reqVO.getNickname());
+        dsUserMapper.updateById(dsUser);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateUserAvatar(Long userId, AppDsUserAvatarUpdateReqVO reqVO) {
         DsUser dsUser = dsUserMapper.selectById(userId);
         if (dsUser == null) {
             throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
         }
         dsUser.setAvatar(reqVO.getAvatar());
+        dsUserMapper.updateById(dsUser);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateUserPassword(Long userId, AppDsUserPasswordUpdateReqVO reqVO) {
+        DsUser dsUser = dsUserMapper.selectById(userId);
+        if (dsUser == null) {
+            throw exception(AUTH_LOGIN_BAD_CREDENTIALS);
+        }
+        if (!passwordEncoder.matches(reqVO.getOldPassword(), dsUser.getPassword())) {
+            throw exception(USER_PASSWORD_OLD_INCORRECT);
+        }
+        dsUser.setPassword(passwordEncoder.encode(reqVO.getNewPassword()));
         dsUserMapper.updateById(dsUser);
     }
 

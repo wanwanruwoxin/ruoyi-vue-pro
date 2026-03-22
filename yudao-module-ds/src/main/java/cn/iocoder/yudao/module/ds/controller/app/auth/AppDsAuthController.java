@@ -9,6 +9,8 @@ import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthLoginRespVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsAuthRegisterReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserAvatarUpdateReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserNicknameUpdateReqVO;
+import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserPasswordUpdateReqVO;
 import cn.iocoder.yudao.module.ds.controller.app.auth.vo.AppDsUserProfileRespVO;
 import cn.iocoder.yudao.module.ds.service.DsUserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -83,10 +85,24 @@ public class AppDsAuthController {
         return success(dsUserService.getUserProfile(getLoginUserId()));
     }
 
+    @PostMapping("/profile/update-nickname")
+    @Operation(summary = "更新当前用户昵称")
+    public CommonResult<Boolean> updateNickname(@RequestBody @Valid AppDsUserNicknameUpdateReqVO reqVO) {
+        dsUserService.updateUserNickname(getLoginUserId(), reqVO);
+        return success(true);
+    }
+
     @PostMapping("/profile/update-avatar")
     @Operation(summary = "更新当前用户头像")
     public CommonResult<Boolean> updateAvatar(@RequestBody @Valid AppDsUserAvatarUpdateReqVO reqVO) {
         dsUserService.updateUserAvatar(getLoginUserId(), reqVO);
+        return success(true);
+    }
+
+    @PostMapping("/profile/update-password")
+    @Operation(summary = "更新当前用户密码")
+    public CommonResult<Boolean> updatePassword(@RequestBody @Valid AppDsUserPasswordUpdateReqVO reqVO) {
+        dsUserService.updateUserPassword(getLoginUserId(), reqVO);
         return success(true);
     }
 }
