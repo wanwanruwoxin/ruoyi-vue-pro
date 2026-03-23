@@ -68,6 +68,9 @@ public class DsProductCategoryController {
     @Operation(summary = "创建商品分类")
     public CommonResult<Long> create(@Valid @RequestBody DsProductCategory reqVO) {
         reqVO.setId(null);
+        if (reqVO.getStatus() == null) {
+            reqVO.setStatus(0);
+        }
         dsProductCategoryMapper.insert(reqVO);
         return success(reqVO.getId());
     }

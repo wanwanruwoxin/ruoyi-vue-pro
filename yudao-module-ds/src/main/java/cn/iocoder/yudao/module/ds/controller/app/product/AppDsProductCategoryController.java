@@ -29,8 +29,9 @@ public class AppDsProductCategoryController {
     @GetMapping("/list")
     @Operation(summary = "获取商品分类列表")
     public CommonResult<List<DsProductCategory>> getCategoryList(@RequestParam(value = "status", required = false) Integer status) {
+        Integer queryStatus = status == null ? 0 : status;
         List<DsProductCategory> dsProductCategories = dsProductCategoryMapper.selectList(new LambdaQueryWrapperX<DsProductCategory>()
-                .eqIfPresent(DsProductCategory::getStatus, status)
+                .eq(DsProductCategory::getStatus, queryStatus)
                 .orderByAsc(DsProductCategory::getSort)
                 .orderByDesc(DsProductCategory::getId));
         return success(dsProductCategories);
