@@ -46,6 +46,7 @@ import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizTyp
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_STATUS_ILLEGAL;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_STOCK_NOT_ENOUGH;
+import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.USER_ADDRESS_NOT_EXISTS;
 
 @Service
 @Validated
@@ -90,6 +91,7 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DsShopOrder createAndPayOrder(Long uid, AppDsShopOrderCreateReqVO reqVO) {
+        DsUserAddress selectedAddress = resolveOrderAddress(uid, reqVO.getAddressId());
         Map<Long, ItemPurchaseData> purchaseDataMap = mergeBuyCount(reqVO.getItems());
         List<DsProduct> products = dsProductMapper.selectByIds(purchaseDataMap.keySet());
         if (products.size() != purchaseDataMap.size()) {
@@ -154,7 +156,7 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
         dsShopOrderMapper.insert(order);
         persistOrderItemsAndReward(uid, order, paidAt, itemSettlementDataList);
         dsShareholderPoolService.recordShopOrderProfitToPool(order);
-        sendOrderPaidNotify(uid, order, shopNotifyDataMap);
+        sendOrderPaidNotify(order, selectedAddress, shopNotifyDataMap);
         return order;
     }
 
@@ -187,11 +189,29 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
         return result;
     }
 
-    private void sendOrderPaidNotify(Long uid, DsShopOrder order, Map<Long, ShopNotifyData> shopNotifyDataMap) {
+    private DsUserAddress resolveOrderAddress(Long uid, Long addressId) {
+        if (addressId != null) {
+            DsUserAddress address = dsUserAddressMapper.selectByIdAndUid(addressId, uid);
+            if (address == null) {
+                throw exception(USER_ADDRESS_NOT_EXISTS);
+            }
+            return address;
+        }
+        DsUserAddress defaultAddress = dsUserAddressMapper.selectDefaultByUid(uid);
+        if (defaultAddress != null) {
+            return defaultAddress;
+        }
+        List<DsUserAddress> addresses = dsUserAddressMapper.selectListByUid(uid);
+        if (!addresses.isEmpty()) {
+            return addresses.get(0);
+        }
+        throw exception(USER_ADDRESS_NOT_EXISTS);
+    }
+
+    private void sendOrderPaidNotify(DsShopOrder order, DsUserAddress address, Map<Long, ShopNotifyData> shopNotifyDataMap) {
         if (shopNotifyDataMap.isEmpty()) {
             return;
         }
-        DsUserAddress address = dsUserAddressMapper.selectDefaultByUid(uid);
         for (Map.Entry<Long, ShopNotifyData> entry : shopNotifyDataMap.entrySet()) {
             Long shopId = entry.getKey();
             if (shopId == null) {

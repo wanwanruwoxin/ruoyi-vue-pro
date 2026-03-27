@@ -13,6 +13,9 @@ import java.util.List;
 @Data
 public class AppDsShopOrderCreateReqVO {
 
+    @Schema(description = "收货地址编号", example = "1")
+    private Long addressId;
+
     @Schema(description = "购买商品列表", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "购买商品不能为空")
     @Valid
