@@ -29,4 +29,14 @@ public interface DsShopOrderItemMapper extends BaseMapperX<DsShopOrderItem> {
                 .eqIfPresent(DsShopOrderItem::getShopId, shopId)
                 .orderByAsc(DsShopOrderItem::getId));
     }
+
+    default List<Long> selectOrderItemIdsByShopId(Long shopId) {
+        return selectList(new LambdaQueryWrapperX<DsShopOrderItem>()
+                .eq(DsShopOrderItem::getShopId, shopId)
+                .select(DsShopOrderItem::getId))
+                .stream()
+                .map(DsShopOrderItem::getId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
 }
