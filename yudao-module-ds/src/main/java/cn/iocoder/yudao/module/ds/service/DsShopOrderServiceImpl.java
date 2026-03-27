@@ -2,13 +2,21 @@ package cn.iocoder.yudao.module.ds.service;
 
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.module.ds.controller.app.order.vo.AppDsShopOrderCreateReqVO;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsOrderCommissionSplit;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsProduct;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsProductRecommendTrace;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsRecommendRewardRecord;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShop;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsShopOrder;
+import cn.iocoder.yudao.module.ds.dal.dataobject.DsShopOrderItem;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsOrderCommissionSplitMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsProductMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsProductRecommendTraceMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsRecommendRewardRecordMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsShopMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsShopOrderMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsShopOrderItemMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserAddressMapper;
 import cn.iocoder.yudao.module.system.api.notify.NotifyMessageSendApi;
 import cn.iocoder.yudao.module.system.api.notify.dto.NotifySendSingleToUserReqDTO;
@@ -28,11 +36,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PayStatus.PAID;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.SHOP_ORDER_PAY;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PointBizType.SHOP_RECOMMEND_REWARD;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_NOT_EXISTS;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_STATUS_ILLEGAL;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.PRODUCT_STOCK_NOT_ENOUGH;
@@ -43,6 +53,12 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
 
     private static final String MESSAGE_TEMPLATE_ORDER_PAID = "sansanshenghuo";
     private static final DateTimeFormatter PAID_AT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String COMMISSION_SETTLE_STATUS_PENDING = "PENDING";
+    private static final String REWARD_GRANT_STATUS_PENDING = "PENDING";
+    private static final String REWARD_GRANT_STATUS_GRANTED = "GRANTED";
+    private static final String SHOP_RECOMMEND_REWARD_RULE_VERSION = "SHOP_COMMISSION_RECOMMEND_V1";
+    private static final String RECOMMEND_SCENE_PRODUCT_RECOMMENDER = "PRODUCT_RECOMMENDER";
+    private static final int RECOMMEND_STATUS_BOUND = 1;
 
     @Resource
     private DsShopOrderMapper dsShopOrderMapper;
@@ -53,7 +69,19 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
     @Resource
     private DsUserAddressMapper dsUserAddressMapper;
     @Resource
+    private DsShopOrderItemMapper dsShopOrderItemMapper;
+    @Resource
+    private DsOrderCommissionSplitMapper dsOrderCommissionSplitMapper;
+    @Resource
+    private DsRecommendRewardRecordMapper dsRecommendRewardRecordMapper;
+    @Resource
+    private DsProductRecommendTraceMapper dsProductRecommendTraceMapper;
+    @Resource
     private DsPointAccountService dsPointAccountService;
+    @Resource
+    private DsRewardRuleService dsRewardRuleService;
+    @Resource
+    private DsPlatformAccountService dsPlatformAccountService;
     @Resource
     private DsShareholderPoolService dsShareholderPoolService;
     @Resource
@@ -62,9 +90,9 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DsShopOrder createAndPayOrder(Long uid, AppDsShopOrderCreateReqVO reqVO) {
-        Map<Long, Integer> buyCountMap = mergeBuyCount(reqVO.getItems());
-        List<DsProduct> products = dsProductMapper.selectBatchIds(buyCountMap.keySet());
-        if (products.size() != buyCountMap.size()) {
+        Map<Long, ItemPurchaseData> purchaseDataMap = mergeBuyCount(reqVO.getItems());
+        List<DsProduct> products = dsProductMapper.selectByIds(purchaseDataMap.keySet());
+        if (products.size() != purchaseDataMap.size()) {
             throw exception(PRODUCT_NOT_EXISTS);
         }
         Map<Long, DsProduct> productMap = products.stream()
@@ -73,7 +101,8 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
         int totalCount = 0;
         StringBuilder summaryBuilder = new StringBuilder();
         Map<Long, ShopNotifyData> shopNotifyDataMap = new LinkedHashMap<>();
-        for (Map.Entry<Long, Integer> entry : buyCountMap.entrySet()) {
+        List<ItemSettlementData> itemSettlementDataList = new ArrayList<>();
+        for (Map.Entry<Long, ItemPurchaseData> entry : purchaseDataMap.entrySet()) {
             DsProduct product = productMap.get(entry.getKey());
             if (product == null) {
                 throw exception(PRODUCT_NOT_EXISTS);
@@ -81,7 +110,8 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
             if (!Integer.valueOf(1).equals(product.getSaleStatus())) {
                 throw exception(PRODUCT_STATUS_ILLEGAL);
             }
-            int buyCount = entry.getValue();
+            ItemPurchaseData purchaseData = entry.getValue();
+            int buyCount = purchaseData.buyCount();
             if (product.getStock() == null || product.getStock() < buyCount) {
                 throw exception(PRODUCT_STOCK_NOT_ENOUGH);
             }
@@ -91,6 +121,8 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
             BigDecimal lineAmount = product.getPriceAmount().multiply(BigDecimal.valueOf(buyCount));
             totalAmount = totalAmount.add(lineAmount);
             totalCount += buyCount;
+            itemSettlementDataList.add(new ItemSettlementData(product, buyCount, lineAmount,
+                    resolveProductRecommenderUid(uid, purchaseData.recommenderUid())));
             ShopNotifyData shopNotifyData = shopNotifyDataMap.computeIfAbsent(product.getShopId(), ignored -> new ShopNotifyData());
             shopNotifyData.setTotalAmount(shopNotifyData.getTotalAmount().add(lineAmount));
             shopNotifyData.setItemCount(shopNotifyData.getItemCount() + buyCount);
@@ -120,6 +152,7 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
                 .productSummary(summaryBuilder.toString())
                 .build();
         dsShopOrderMapper.insert(order);
+        persistOrderItemsAndReward(uid, order, paidAt, itemSettlementDataList);
         dsShareholderPoolService.recordShopOrderProfitToPool(order);
         sendOrderPaidNotify(uid, order, shopNotifyDataMap);
         return order;
@@ -130,12 +163,21 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
         return dsShopOrderMapper.selectListByUid(uid);
     }
 
-    private Map<Long, Integer> mergeBuyCount(List<AppDsShopOrderCreateReqVO.Item> items) {
-        Map<Long, Integer> result = new LinkedHashMap<>();
+    private Map<Long, ItemPurchaseData> mergeBuyCount(List<AppDsShopOrderCreateReqVO.Item> items) {
+        Map<Long, ItemPurchaseData> result = new LinkedHashMap<>();
         for (AppDsShopOrderCreateReqVO.Item item : items) {
             Long productId = item.getProductId();
             Integer quantity = item.getQuantity();
-            result.put(productId, result.getOrDefault(productId, 0) + quantity);
+            ItemPurchaseData current = result.get(productId);
+            if (current == null) {
+                result.put(productId, new ItemPurchaseData(quantity, item.getRecommenderUid()));
+                continue;
+            }
+            Long recommenderUid = current.recommenderUid();
+            if (recommenderUid == null && item.getRecommenderUid() != null) {
+                recommenderUid = item.getRecommenderUid();
+            }
+            result.put(productId, new ItemPurchaseData(current.buyCount() + quantity, recommenderUid));
         }
         return result;
     }
@@ -212,6 +254,188 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
 
     private String formatMoney(BigDecimal value) {
         return value == null ? "0.00" : value.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private void persistOrderItemsAndReward(Long uid, DsShopOrder order, LocalDateTime paidAt, List<ItemSettlementData> items) {
+        DsRewardRuleService.ShopOrderCommissionRuleConfig commissionRuleConfig = dsRewardRuleService.getShopOrderCommissionRuleConfig();
+        BigDecimal platformRate = commissionRuleConfig.platformRate();
+        BigDecimal rewardRate = commissionRuleConfig.recommendRewardRate();
+        BigDecimal rewardShareRate = calculateRewardShareRate(platformRate, rewardRate);
+        RewardPersistData persistData = new RewardPersistData(items.size());
+        for (ItemSettlementData item : items) {
+            Long inviterId = item.recommenderUid();
+            Long orderItemId = IdUtil.getSnowflakeNextId();
+            DsShopOrderItem orderItem = buildOrderItem(uid, order, paidAt, item, orderItemId);
+            persistData.orderItems().add(orderItem);
+            String traceNo = buildRecommendTrace(uid, order, paidAt, inviterId, orderItemId, orderItem, persistData.recommendTraces());
+            CommissionAmounts commissionAmounts = calculateCommissionAmounts(orderItem.getLineAmount(), platformRate, rewardRate, inviterId);
+            Long splitId = IdUtil.getSnowflakeNextId();
+            persistData.commissionSplits().add(buildCommissionSplit(order, paidAt, platformRate, rewardShareRate, splitId, orderItem,
+                    commissionAmounts));
+            DsRecommendRewardRecord rewardRecord = buildRewardRecord(uid, order, paidAt, inviterId, splitId, orderItemId, traceNo,
+                    rewardRate, commissionAmounts.recommendRewardAmount());
+            if (rewardRecord != null) {
+                persistData.rewardRecords().add(rewardRecord);
+                persistData.inviterRewardAmountMap().merge(inviterId, rewardRecord.getRewardAmount(), BigDecimal::add);
+            }
+        }
+        persistBatchAndGrantReward(uid, order, paidAt, commissionRuleConfig, persistData);
+    }
+
+    private BigDecimal calculateRewardShareRate(BigDecimal platformRate, BigDecimal rewardRate) {
+        return platformRate.signum() <= 0 ? BigDecimal.ZERO : rewardRate.divide(platformRate, 4, RoundingMode.HALF_UP);
+    }
+
+    private DsShopOrderItem buildOrderItem(Long uid, DsShopOrder order, LocalDateTime paidAt, ItemSettlementData item, Long orderItemId) {
+        return DsShopOrderItem.builder()
+                .id(orderItemId)
+                .orderId(order.getId())
+                .orderNo(order.getOrderNo())
+                .uid(uid)
+                .shopId(item.product().getShopId())
+                .productId(item.product().getId())
+                .productName(item.product().getProductName() == null ? "" : item.product().getProductName())
+                .priceAmount(item.product().getPriceAmount())
+                .quantity(item.buyCount())
+                .lineAmount(item.lineAmount())
+                .paidAt(paidAt)
+                .build();
+    }
+
+    private String buildRecommendTrace(Long uid, DsShopOrder order, LocalDateTime paidAt, Long inviterId, Long orderItemId,
+                                       DsShopOrderItem orderItem, List<DsProductRecommendTrace> recommendTraces) {
+        if (inviterId == null) {
+            return null;
+        }
+        String traceNo = "SPT" + IdUtil.fastSimpleUUID();
+        recommendTraces.add(DsProductRecommendTrace.builder()
+                .id(IdUtil.getSnowflakeNextId())
+                .traceNo(traceNo)
+                .inviterId(inviterId)
+                .inviteeId(uid)
+                .shopId(orderItem.getShopId())
+                .productId(orderItem.getProductId())
+                .recommendScene(RECOMMEND_SCENE_PRODUCT_RECOMMENDER)
+                .recommendStatus(RECOMMEND_STATUS_BOUND)
+                .recommendedAt(paidAt)
+                .bindOrderNo(order.getOrderNo())
+                .bindOrderItemId(orderItemId)
+                .build());
+        return traceNo;
+    }
+
+    private CommissionAmounts calculateCommissionAmounts(BigDecimal lineAmount, BigDecimal platformRate, BigDecimal rewardRate,
+                                                         Long inviterId) {
+        BigDecimal grossAmount = lineAmount == null ? BigDecimal.ZERO : lineAmount;
+        BigDecimal platformAmount = grossAmount.multiply(platformRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal recommendRewardAmount = grossAmount.multiply(rewardRate).setScale(2, RoundingMode.HALF_UP);
+        if (inviterId == null) {
+            recommendRewardAmount = BigDecimal.ZERO;
+        } else if (recommendRewardAmount.compareTo(platformAmount) > 0) {
+            recommendRewardAmount = platformAmount;
+        }
+        BigDecimal platformNetAmount = platformAmount.subtract(recommendRewardAmount).setScale(2, RoundingMode.HALF_UP);
+        return new CommissionAmounts(grossAmount, platformAmount, recommendRewardAmount, platformNetAmount);
+    }
+
+    private DsOrderCommissionSplit buildCommissionSplit(DsShopOrder order, LocalDateTime paidAt, BigDecimal platformRate,
+                                                        BigDecimal rewardShareRate, Long splitId, DsShopOrderItem orderItem,
+                                                        CommissionAmounts amounts) {
+        return DsOrderCommissionSplit.builder()
+                .id(splitId)
+                .splitNo("SCS" + IdUtil.fastSimpleUUID())
+                .orderId(order.getId())
+                .orderNo(order.getOrderNo())
+                .orderItemId(orderItem.getId())
+                .shopId(orderItem.getShopId())
+                .grossAmount(amounts.grossAmount())
+                .platformRate(platformRate)
+                .platformAmount(amounts.platformAmount())
+                .rewardShareRate(rewardShareRate)
+                .rewardAmount(amounts.recommendRewardAmount())
+                .platformNetAmount(amounts.platformNetAmount())
+                .settleStatus(COMMISSION_SETTLE_STATUS_PENDING)
+                .occurredAt(paidAt)
+                .build();
+    }
+
+    private DsRecommendRewardRecord buildRewardRecord(Long uid, DsShopOrder order, LocalDateTime paidAt, Long inviterId, Long splitId,
+                                                      Long orderItemId, String traceNo, BigDecimal rewardRate,
+                                                      BigDecimal recommendRewardAmount) {
+        if (inviterId == null || recommendRewardAmount.signum() <= 0) {
+            return null;
+        }
+        return DsRecommendRewardRecord.builder()
+                .id(IdUtil.getSnowflakeNextId())
+                .rewardNo("SRR" + IdUtil.fastSimpleUUID())
+                .splitId(splitId)
+                .orderId(order.getId())
+                .orderNo(order.getOrderNo())
+                .orderItemId(orderItemId)
+                .traceNo(traceNo)
+                .inviterId(inviterId)
+                .inviteeId(uid)
+                .rewardRate(rewardRate)
+                .rewardAmount(recommendRewardAmount)
+                .grantStatus(REWARD_GRANT_STATUS_PENDING)
+                .occurredAt(paidAt)
+                .build();
+    }
+
+    private void persistBatchAndGrantReward(Long uid, DsShopOrder order, LocalDateTime paidAt,
+                                            DsRewardRuleService.ShopOrderCommissionRuleConfig commissionRuleConfig,
+                                            RewardPersistData persistData) {
+        if (!persistData.orderItems().isEmpty()) {
+            dsShopOrderItemMapper.insertBatch(persistData.orderItems());
+        }
+        if (!persistData.recommendTraces().isEmpty()) {
+            dsProductRecommendTraceMapper.insertBatch(persistData.recommendTraces());
+        }
+        if (!persistData.commissionSplits().isEmpty()) {
+            dsOrderCommissionSplitMapper.insertBatch(persistData.commissionSplits());
+            dsPlatformAccountService.recordCommissionIncome(order.getId(), order.getOrderNo(), paidAt, persistData.commissionSplits());
+        }
+        if (persistData.rewardRecords().isEmpty()) {
+            return;
+        }
+        dsRecommendRewardRecordMapper.insertBatch(persistData.rewardRecords());
+        String rewardRuleVersion = commissionRuleConfig.recommendRuleVersion() == null
+                ? SHOP_RECOMMEND_REWARD_RULE_VERSION
+                : commissionRuleConfig.recommendRuleVersion();
+        persistData.inviterRewardAmountMap().forEach((inviterId, rewardAmount) ->
+                dsPointAccountService.earnPoints(inviterId, rewardAmount, SHOP_RECOMMEND_REWARD.getCode(),
+                        "SRB" + order.getOrderNo() + "-" + inviterId, uid, rewardRuleVersion, paidAt));
+        persistData.rewardRecords().forEach(reward -> {
+            reward.setGrantStatus(REWARD_GRANT_STATUS_GRANTED);
+            reward.setGrantedAt(paidAt);
+        });
+        dsRecommendRewardRecordMapper.updateBatch(persistData.rewardRecords());
+    }
+
+    private Long resolveProductRecommenderUid(Long uid, Long recommenderUid) {
+        if (recommenderUid == null || recommenderUid <= 0 || Objects.equals(uid, recommenderUid)) {
+            return null;
+        }
+        return recommenderUid;
+    }
+
+    private record CommissionAmounts(BigDecimal grossAmount, BigDecimal platformAmount, BigDecimal recommendRewardAmount,
+                                     BigDecimal platformNetAmount) {
+    }
+
+    private record RewardPersistData(List<DsShopOrderItem> orderItems, List<DsProductRecommendTrace> recommendTraces,
+                                     List<DsOrderCommissionSplit> commissionSplits, List<DsRecommendRewardRecord> rewardRecords,
+                                     Map<Long, BigDecimal> inviterRewardAmountMap) {
+        private RewardPersistData(int itemSize) {
+            this(new ArrayList<>(itemSize), new ArrayList<>(itemSize), new ArrayList<>(itemSize), new ArrayList<>(itemSize),
+                    new LinkedHashMap<>());
+        }
+    }
+
+    private record ItemSettlementData(DsProduct product, int buyCount, BigDecimal lineAmount, Long recommenderUid) {
+    }
+
+    private record ItemPurchaseData(int buyCount, Long recommenderUid) {
     }
 
 

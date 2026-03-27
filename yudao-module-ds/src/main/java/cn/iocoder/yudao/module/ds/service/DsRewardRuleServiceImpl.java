@@ -22,6 +22,7 @@ import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.AD
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.MEMBERSHIP_ORDER_PAID_NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.POINT_CONSUME_SCOPE;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.RewardTriggerEvent.SHOP_ORDER_COMMISSION;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.POINT_CONSUME_SCOPE_DISABLED;
 
 @Service
@@ -32,6 +33,8 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
     private static final String TEAM_LEADER_LEVEL3_NEAREST = "TEAM_LEADER_LEVEL3_NEAREST";
     private static final String TEAM_LEADER_LEVEL3_UPPER = "TEAM_LEADER_LEVEL3_UPPER";
     private static final String SHAREHOLDER_POOL = "SHAREHOLDER_POOL";
+    private static final String SHOP_COMMISSION_PLATFORM_RATE = "PLATFORM_RATE";
+    private static final String SHOP_COMMISSION_RECOMMEND_RATE = "RECOMMEND_RATE";
     private static final String PLAN_CODE_ALL = "ALL";
 
     @Resource
@@ -124,12 +127,37 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ShopOrderCommissionRuleConfig getShopOrderCommissionRuleConfig() {
+        initDefaultRulesIfAbsent();
+        LocalDateTime now = LocalDateTime.now();
+        DsRewardRule platformRule = dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevel(
+                SHOP_ORDER_COMMISSION.getCode(), SHOP_COMMISSION_PLATFORM_RATE, now);
+        DsRewardRule recommendRule = dsRewardRuleMapper.selectActiveRuleByTriggerEventAndInviterLevel(
+                SHOP_ORDER_COMMISSION.getCode(), SHOP_COMMISSION_RECOMMEND_RATE, now);
+        BigDecimal platformRate = normalizeShopCommissionRate(platformRule == null ? null : platformRule.getRewardRate(),
+                new BigDecimal("0.10"));
+        BigDecimal recommendRate = normalizeShopCommissionRate(recommendRule == null ? null : recommendRule.getRewardRate(),
+                new BigDecimal("0.02"));
+        if (recommendRate.compareTo(platformRate) > 0) {
+            recommendRate = platformRate;
+        }
+        return new ShopOrderCommissionRuleConfig(platformRate, recommendRate,
+                platformRule == null ? "SHOP_COMMISSION_PLATFORM_V1" : platformRule.getRuleVersion(),
+                recommendRule == null ? "SHOP_COMMISSION_RECOMMEND_V1" : recommendRule.getRuleVersion());
+    }
+
     @Transactional(rollbackFor = Exception.class)
     protected void initDefaultRulesIfAbsent() {
         initInviteRewardRule();
         initConsumeScopeRule(MEMBERSHIP_ORDER_PAY.getCode(), "SCOPE_MEMBERSHIP_V1");
         initConsumeScopeRule(SHOP_ORDER_PAY.getCode(), "SCOPE_SHOP_V1");
         initConsumeScopeRule(POINT_GIFT_SEND.getCode(), "SCOPE_GIFT_V1");
+        initShopCommissionRule(SHOP_COMMISSION_PLATFORM_RATE, "SHOP_COMMISSION_PLATFORM_V1",
+                "商城订单平台抽成比例", new BigDecimal("0.10"));
+        initShopCommissionRule(SHOP_COMMISSION_RECOMMEND_RATE, "SHOP_COMMISSION_RECOMMEND_V1",
+                "商城订单推荐奖励比例", new BigDecimal("0.02"));
     }
 
     private void initInviteRewardRule() {
@@ -266,6 +294,34 @@ public class DsRewardRuleServiceImpl implements DsRewardRuleService {
                 .effectiveTo(null)
                 .build();
         dsRewardRuleMapper.insert(rule);
+    }
+
+    private void initShopCommissionRule(String rateType, String version, String description, BigDecimal rewardRate) {
+        DsRewardRule existed = dsRewardRuleMapper.selectOne(DsRewardRule::getTriggerEvent, SHOP_ORDER_COMMISSION.getCode(),
+                DsRewardRule::getApplicableInviterLevel, rateType);
+        if (existed != null) {
+            return;
+        }
+        DsRewardRule rule = DsRewardRule.builder()
+                .ruleVersion(version)
+                .ruleDescription(description)
+                .triggerEvent(SHOP_ORDER_COMMISSION.getCode())
+                .applicablePlanCode(PLAN_CODE_ALL)
+                .rewardRate(rewardRate)
+                .dailyCapPoints(null)
+                .applicableInviterLevel(rateType)
+                .status(CommonStatusEnum.ENABLE.getStatus())
+                .effectiveFrom(LocalDateTime.now())
+                .effectiveTo(null)
+                .build();
+        dsRewardRuleMapper.insert(rule);
+    }
+
+    private BigDecimal normalizeShopCommissionRate(BigDecimal rate, BigDecimal defaultRate) {
+        if (rate == null || rate.signum() < 0) {
+            return defaultRate;
+        }
+        return rate.setScale(4, java.math.RoundingMode.HALF_UP);
     }
 
     private String resolveConsumeScopeDescription(String scopeCode) {

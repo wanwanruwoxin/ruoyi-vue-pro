@@ -158,4 +158,47 @@ CREATE TABLE IF NOT EXISTS `ds_recommend_reward_record` (
   KEY `idx_ds_recommend_reward_invitee_time` (`invitee_id`, `occurred_at`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `ds_platform_account` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `account_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MAIN',
+  `available_amount` decimal(14, 2) NOT NULL DEFAULT 0.00,
+  `frozen_amount` decimal(14, 2) NOT NULL DEFAULT 0.00,
+  `total_income_amount` decimal(14, 2) NOT NULL DEFAULT 0.00,
+  `total_expense_amount` decimal(14, 2) NOT NULL DEFAULT 0.00,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_ds_platform_account_code` (`account_code`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ds_platform_account_ledger` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `account_id` bigint NOT NULL,
+  `change_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'INCOME',
+  `amount` decimal(14, 2) NOT NULL DEFAULT 0.00,
+  `balance_after` decimal(14, 2) NOT NULL DEFAULT 0.00,
+  `biz_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `biz_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_id` bigint NULL DEFAULT NULL,
+  `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `order_item_id` bigint NULL DEFAULT NULL,
+  `split_id` bigint NULL DEFAULT NULL,
+  `occurred_at` datetime NOT NULL,
+  `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` bit(1) NOT NULL DEFAULT b'0',
+  `tenant_id` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_ds_platform_ledger_biz_no` (`biz_no`) USING BTREE,
+  KEY `idx_ds_platform_ledger_account_time` (`account_id`, `occurred_at`) USING BTREE,
+  KEY `idx_ds_platform_ledger_order_item` (`order_item_id`) USING BTREE,
+  KEY `idx_ds_platform_ledger_split_id` (`split_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
