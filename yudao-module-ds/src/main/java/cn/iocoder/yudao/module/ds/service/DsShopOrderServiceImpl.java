@@ -163,6 +163,11 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
         return dsShopOrderMapper.selectListByUid(uid);
     }
 
+    @Override
+    public List<DsShopOrderItem> getUserOrderItems(Long uid) {
+        return dsShopOrderItemMapper.selectListByUid(uid);
+    }
+
     private Map<Long, ItemPurchaseData> mergeBuyCount(List<AppDsShopOrderCreateReqVO.Item> items) {
         Map<Long, ItemPurchaseData> result = new LinkedHashMap<>();
         for (AppDsShopOrderCreateReqVO.Item item : items) {

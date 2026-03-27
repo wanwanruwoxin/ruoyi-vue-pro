@@ -30,6 +30,12 @@ public interface DsShopOrderItemMapper extends BaseMapperX<DsShopOrderItem> {
                 .orderByAsc(DsShopOrderItem::getId));
     }
 
+    default List<DsShopOrderItem> selectListByUid(Long uid) {
+        return selectList(new LambdaQueryWrapperX<DsShopOrderItem>()
+                .eq(DsShopOrderItem::getUid, uid)
+                .orderByDesc(DsShopOrderItem::getId));
+    }
+
     default List<Long> selectOrderItemIdsByShopId(Long shopId) {
         return selectList(new LambdaQueryWrapperX<DsShopOrderItem>()
                 .eq(DsShopOrderItem::getShopId, shopId)
