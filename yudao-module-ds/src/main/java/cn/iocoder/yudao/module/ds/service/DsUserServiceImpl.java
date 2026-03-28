@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.ds.dal.dataobject.DsUser;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsUserAddress;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsMembershipAccountMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsPointAccountMapper;
+import cn.iocoder.yudao.module.ds.dal.mysql.DsInviteRelationMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsShopMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserAddressMapper;
 import cn.iocoder.yudao.module.ds.dal.mysql.DsUserMapper;
@@ -59,6 +60,8 @@ public class DsUserServiceImpl implements DsUserService {
     private DsPointAccountMapper dsPointAccountMapper;
     @Resource
     private DsShopMapper dsShopMapper;
+    @Resource
+    private DsInviteRelationMapper dsInviteRelationMapper;
 //    @Resource
 //    private SmsCodeApi smsCodeApi;
 
@@ -240,6 +243,21 @@ public class DsUserServiceImpl implements DsUserService {
             dsPointAccountMapper.updateById(pointAccount);
         }
         return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteAdminUser(Long id) {
+        DsUser user = dsUserMapper.selectById(id);
+        if (user == null) {
+            return false;
+        }
+        dsUserAddressMapper.deleteByUid(id);
+        dsInviteRelationMapper.deleteByInviterOrInviteeId(id);
+        dsMembershipAccountMapper.deleteByUid(id);
+        dsPointAccountMapper.deleteByUid(id);
+        dsShopMapper.deleteByUid(id);
+        return dsUserMapper.deleteById(id) > 0;
     }
 
     private AppDsAuthLoginRespVO buildLoginResp(OAuth2AccessTokenRespDTO token) {

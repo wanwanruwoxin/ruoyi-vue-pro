@@ -18,6 +18,11 @@ public interface DsShopMapper extends BaseMapperX<DsShop> {
         return selectOne(DsShop::getBackendAdminUserId, backendAdminUserId);
     }
 
+    default int deleteByUid(Long uid) {
+        return delete(new LambdaQueryWrapperX<DsShop>()
+                .eq(DsShop::getUid, uid));
+    }
+
     default PageResult<DsShop> selectPage(DsShopPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<DsShop>()
                 .eqIfPresent(DsShop::getUid, reqVO.getUid())

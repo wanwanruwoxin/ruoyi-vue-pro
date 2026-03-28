@@ -24,4 +24,9 @@ public interface DsUserAddressMapper extends BaseMapperX<DsUserAddress> {
     default DsUserAddress selectDefaultByUid(Long uid) {
         return selectOne(DsUserAddress::getUid, uid, DsUserAddress::getIsDefault, 1);
     }
+
+    default int deleteByUid(Long uid) {
+        return delete(new LambdaQueryWrapperX<DsUserAddress>()
+                .eq(DsUserAddress::getUid, uid));
+    }
 }

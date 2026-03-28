@@ -29,4 +29,9 @@ public interface DsMembershipAccountMapper extends BaseMapperX<DsMembershipAccou
                 .eq(DsMembershipAccount::getCurrentPlanCode, planCode));
         return count == null ? 0 : count.intValue();
     }
+
+    default int deleteByUid(Long uid) {
+        return delete(new LambdaQueryWrapperX<DsMembershipAccount>()
+                .eq(DsMembershipAccount::getUid, uid));
+    }
 }

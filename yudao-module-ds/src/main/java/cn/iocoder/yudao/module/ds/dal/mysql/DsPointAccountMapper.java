@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.ds.dal.mysql;
 
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.ds.dal.dataobject.DsPointAccount;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -9,5 +10,10 @@ public interface DsPointAccountMapper extends BaseMapperX<DsPointAccount> {
 
     default DsPointAccount selectByUid(Long uid) {
         return selectOne(DsPointAccount::getUid, uid);
+    }
+
+    default int deleteByUid(Long uid) {
+        return delete(new LambdaQueryWrapperX<DsPointAccount>()
+                .eq(DsPointAccount::getUid, uid));
     }
 }

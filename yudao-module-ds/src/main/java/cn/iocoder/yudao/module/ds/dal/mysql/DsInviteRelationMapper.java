@@ -36,4 +36,11 @@ public interface DsInviteRelationMapper extends BaseMapperX<DsInviteRelation> {
                 .eq(DsInviteRelation::getInviterId, inviterId)
                 .ge(DsInviteRelation::getLevel, minLevel));
     }
+
+    default int deleteByInviterOrInviteeId(Long uid) {
+        return delete(new LambdaQueryWrapperX<DsInviteRelation>()
+                .eq(DsInviteRelation::getInviterId, uid)
+                .or()
+                .eq(DsInviteRelation::getInviteeId, uid));
+    }
 }

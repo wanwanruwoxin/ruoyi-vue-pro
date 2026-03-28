@@ -29,4 +29,6 @@ public interface DsUserService {
     void updateUserPassword(Long userId, AppDsUserPasswordUpdateReqVO reqVO);
 
     boolean updateAdminUser(DsUserUpdateReqVO reqVO);
+
+    boolean deleteAdminUser(Long id);
 }

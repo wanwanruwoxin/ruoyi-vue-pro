@@ -21,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -84,6 +85,12 @@ public class DsUserController {
     @Operation(summary = "更新用户")
     public CommonResult<Boolean> update(@Valid @RequestBody DsUserUpdateReqVO reqVO) {
         return success(dsUserService.updateAdminUser(reqVO));
+    }
+
+    @DeleteMapping("/delete")
+    @Operation(summary = "删除用户")
+    public CommonResult<Boolean> delete(@RequestParam("id") Long id) {
+        return success(dsUserService.deleteAdminUser(id));
     }
 
     @Data
