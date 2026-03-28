@@ -181,6 +181,10 @@ public class DsMembershipOrderServiceImpl implements DsMembershipOrderService {
         if (directInviterId == null || dsMembershipAccountService.isTeamLeader(directInviterId)) {
             return;
         }
+        DsMembershipAccount directInviterAccount = dsMembershipAccountService.getAccountIfPresent(directInviterId);
+        if (directInviterAccount == null || !ADVANCED.getCode().equals(directInviterAccount.getCurrentPlanCode())) {
+            return;
+        }
         List<Long> directInviteeIds = dsInviteRelationService.getDirectInviteeIds(directInviterId);
         int advancedCount = dsMembershipAccountService.countByUidsAndPlanCode(directInviteeIds, ADVANCED.getCode());
         if (advancedCount >= config.teamLeaderDirectAdvancedThreshold) {

@@ -35,6 +35,7 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigDecimal;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.ds.enums.DsMembershipConstants.PlanCode.NORMAL;
 import static cn.iocoder.yudao.module.ds.enums.ErrorCodeConstants.*;
 
 @Slf4j
@@ -202,6 +203,13 @@ public class DsUserServiceImpl implements DsUserService {
         dsUserMapper.updateById(user);
 
         DsMembershipAccount account = dsMembershipAccountMapper.selectByUid(reqVO.getId());
+        String targetPlanCode = reqVO.getCurrentPlanCode();
+        if (!StringUtils.hasText(targetPlanCode) && account != null) {
+            targetPlanCode = account.getCurrentPlanCode();
+        }
+        if (Integer.valueOf(1).equals(reqVO.getTeamLeader()) && NORMAL.getCode().equals(targetPlanCode)) {
+            throw exception(TEAM_LEADER_UPGRADE_REQUIRES_ADVANCED);
+        }
         if (account == null) {
             account = new DsMembershipAccount();
             account.setUid(reqVO.getId());
