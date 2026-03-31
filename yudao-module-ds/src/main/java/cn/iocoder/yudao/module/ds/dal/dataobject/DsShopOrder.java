@@ -34,4 +34,10 @@ public class DsShopOrder extends TenantBaseDO {
     private String payStatus;
     private LocalDateTime paidAt;
     private String productSummary;
+    private String receiverName;
+    private String receiverMobile;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverDistrict;
+    private String receiverDetailAddress;
 }

@@ -49,6 +49,24 @@ public class DsShopOrderRespVO {
     @Schema(description = "商品摘要", example = "苹果 x1；香蕉 x2")
     private String productSummary;
 
+    @Schema(description = "收货人姓名", example = "张三")
+    private String receiverName;
+
+    @Schema(description = "收货人手机号", example = "15601691300")
+    private String receiverMobile;
+
+    @Schema(description = "收货省", example = "北京市")
+    private String receiverProvince;
+
+    @Schema(description = "收货市", example = "北京市")
+    private String receiverCity;
+
+    @Schema(description = "收货区", example = "朝阳区")
+    private String receiverDistrict;
+
+    @Schema(description = "收货详细地址", example = "望京街道 88 号")
+    private String receiverDetailAddress;
+
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime createTime;
 }

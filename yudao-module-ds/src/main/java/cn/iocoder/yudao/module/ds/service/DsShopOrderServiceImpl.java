@@ -152,6 +152,12 @@ public class DsShopOrderServiceImpl implements DsShopOrderService {
                 .payStatus(PAID.getCode())
                 .paidAt(paidAt)
                 .productSummary(summaryBuilder.toString())
+                .receiverName(selectedAddress.getReceiverName())
+                .receiverMobile(selectedAddress.getReceiverMobile())
+                .receiverProvince(selectedAddress.getProvince())
+                .receiverCity(selectedAddress.getCity())
+                .receiverDistrict(selectedAddress.getDistrict())
+                .receiverDetailAddress(selectedAddress.getDetailAddress())
                 .build();
         dsShopOrderMapper.insert(order);
         persistOrderItemsAndReward(uid, order, paidAt, itemSettlementDataList);
