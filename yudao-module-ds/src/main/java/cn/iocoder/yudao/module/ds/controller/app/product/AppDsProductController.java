@@ -95,20 +95,12 @@ public class AppDsProductController {
         respVO.setDetailDesc(StrUtil.emptyToDefault(product.getDescription(), product.getDetailDesc()));
         respVO.setSaleStatus(product.getSaleStatus());
         respVO.setSort(product.getSort());
-        respVO.setImageUrls(resolveImageUrls(product));
+        List<String> carouselImages = splitUrls(product.getImageUrls());
+        respVO.setImageUrls(carouselImages);
+        respVO.setCarouselImages(carouselImages);
+        respVO.setCoverImage(StrUtil.emptyToNull(StrUtil.trim(product.getPicUrl())));
         respVO.setVideoUrls(splitUrls(product.getVideoUrls()));
         return respVO;
-    }
-
-    private static List<String> resolveImageUrls(DsProduct product) {
-        List<String> imageUrls = splitUrls(product.getImageUrls());
-        if (!imageUrls.isEmpty()) {
-            return imageUrls;
-        }
-        if (StrUtil.isNotBlank(product.getPicUrl())) {
-            return Collections.singletonList(product.getPicUrl().trim());
-        }
-        return Collections.emptyList();
     }
 
     private static List<String> splitUrls(String urls) {

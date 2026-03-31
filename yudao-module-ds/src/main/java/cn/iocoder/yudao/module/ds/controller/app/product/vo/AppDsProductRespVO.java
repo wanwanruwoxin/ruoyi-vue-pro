@@ -31,6 +31,12 @@ public class AppDsProductRespVO {
     @Schema(description = "商品图片地址列表")
     private List<String> imageUrls;
 
+    @Schema(description = "商品首图")
+    private String coverImage;
+
+    @Schema(description = "商品轮播图")
+    private List<String> carouselImages;
+
     @Schema(description = "商品视频地址列表")
     private List<String> videoUrls;
 
